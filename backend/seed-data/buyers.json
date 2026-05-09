@@ -1,0 +1,12 @@
+[
+  { "name": "Chioma Okafor", "phone": "08031200001", "email": "chioma@gmail.com", "area": "surulere", "area_key": "surulere" },
+  { "name": "Adamu Hassan", "phone": "08051200002", "email": "adamu.h@yahoo.com", "area": "ikeja", "area_key": "ikeja" },
+  { "name": "Ngozi Ibe", "phone": "08071200003", "email": "ngozi.ibe@gmail.com", "area": "lekki", "area_key": "lekki" },
+  { "name": "Tope Williams", "phone": "08101200004", "email": "tope.w@gmail.com", "area": "yaba", "area_key": "yaba" },
+  { "name": "Bola Ogunleye", "phone": "08131200005", "email": "bola.o@hotmail.com", "area": "victoria_island", "area_key": "victoria_island" },
+  { "name": "Ahmed Suleiman", "phone": "08161200006", "email": "ahmed.s@gmail.com", "area": "mushin", "area_key": "mushin" },
+  { "name": "Funmi Ojo", "phone": "09031200007", "email": "funmi.ojo@gmail.com", "area": "maryland", "area_key": "maryland" },
+  { "name": "Emeka Ugwu", "phone": "09061200008", "email": "emeka.u@yahoo.com", "area": "ojota", "area_key": "ojota" },
+  { "name": "Kemi Adewale", "phone": "08031200009", "email": "kemi.a@gmail.com", "area": "surulere", "area_key": "surulere" },
+  { "name": "Yusuf Balogun", "phone": "08051200010", "email": "yusuf.b@gmail.com", "area": "ikorodu", "area_key": "ikorodu" }
+]

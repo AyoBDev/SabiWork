@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Mama Ngozi",
+    "phone": "08031300001",
+    "business_type": "food_provisions",
+    "area": "surulere",
+    "area_key": "surulere",
+    "virtual_account_number": "9900100001",
+    "sabi_score": 43,
+    "total_logged_sales": 156,
+    "total_logged_revenue": 2340000
+  },
+  {
+    "name": "Alhaji Musa",
+    "phone": "08051300002",
+    "business_type": "building_materials",
+    "area": "mushin",
+    "area_key": "mushin",
+    "virtual_account_number": "9900100002",
+    "sabi_score": 58,
+    "total_logged_sales": 89,
+    "total_logged_revenue": 4450000
+  },
+  {
+    "name": "Mrs. Balogun",
+    "phone": "08071300003",
+    "business_type": "textiles",
+    "area": "yaba",
+    "area_key": "yaba",
+    "virtual_account_number": "9900100003",
+    "sabi_score": 35,
+    "total_logged_sales": 67,
+    "total_logged_revenue": 1340000
+  },
+  {
+    "name": "Chief Okoro",
+    "phone": "08101300004",
+    "business_type": "electronics",
+    "area": "ikeja",
+    "area_key": "ikeja",
+    "virtual_account_number": "9900100004",
+    "sabi_score": 67,
+    "total_logged_sales": 203,
+    "total_logged_revenue": 8120000
+  },
+  {
+    "name": "Iya Basira",
+    "phone": "08131300005",
+    "business_type": "food_provisions",
+    "area": "ojota",
+    "area_key": "ojota",
+    "virtual_account_number": "9900100005",
+    "sabi_score": 28,
+    "total_logged_sales": 45,
+    "total_logged_revenue": 675000
+  }
+]

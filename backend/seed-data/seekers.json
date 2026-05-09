@@ -1,0 +1,7 @@
+[
+  { "name": "David Okechukwu", "phone": "08031400001", "area": "surulere", "area_key": "surulere", "interests": ["tiling", "plumbing"] },
+  { "name": "Amina Garba", "phone": "08051400002", "area": "ikeja", "area_key": "ikeja", "interests": ["tailoring", "fashion_design"] },
+  { "name": "Samuel Eze", "phone": "08071400003", "area": "yaba", "area_key": "yaba", "interests": ["electrical", "welding"] },
+  { "name": "Halima Bello", "phone": "08101400004", "area": "mushin", "area_key": "mushin", "interests": ["hairdressing", "makeup"] },
+  { "name": "Chidi Nwosu", "phone": "08131400005", "area": "lekki", "area_key": "lekki", "interests": ["carpentry", "furniture"] }
+]

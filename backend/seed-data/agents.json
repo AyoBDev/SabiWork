@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Agent Tayo",
+    "phone": "08031500001",
+    "area_assigned": "surulere",
+    "workers_onboarded": 8,
+    "is_active": true
+  },
+  {
+    "name": "Agent Fola",
+    "phone": "08051500002",
+    "area_assigned": "mushin",
+    "workers_onboarded": 5,
+    "is_active": true
+  }
+]

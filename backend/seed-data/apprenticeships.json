@@ -1,0 +1,38 @@
+[
+  {
+    "master_worker_index": 0,
+    "apprentice_name": "David Okechukwu",
+    "seeker_index": 0,
+    "trade": "plumbing",
+    "duration_weeks": 12,
+    "weekly_stipend": 5000,
+    "status": "active",
+    "milestones_completed": 6,
+    "total_milestones": 12,
+    "started_days_ago": 42
+  },
+  {
+    "master_worker_index": 1,
+    "apprentice_name": "Amina Garba",
+    "seeker_index": 1,
+    "trade": "tailoring",
+    "duration_weeks": 16,
+    "weekly_stipend": 4000,
+    "status": "completed",
+    "milestones_completed": 16,
+    "total_milestones": 16,
+    "started_days_ago": 120
+  },
+  {
+    "master_worker_index": 14,
+    "apprentice_name": "Halima Bello",
+    "seeker_index": 3,
+    "trade": "hairdressing",
+    "duration_weeks": 8,
+    "weekly_stipend": 3500,
+    "status": "active",
+    "milestones_completed": 2,
+    "total_milestones": 8,
+    "started_days_ago": 14
+  }
+]
