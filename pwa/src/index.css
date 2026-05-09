@@ -1,6 +1,20 @@
 /* pwa/src/index.css */
 @import "tailwindcss";
 
+@theme {
+  --color-sabi-green: #1B7A3D;
+  --color-sabi-green-light: #2DA055;
+  --color-work-orange: #E8630A;
+  --color-work-orange-light: #FF8534;
+  --color-cash-gold: #F9A825;
+  --color-alert-red: #D32F2F;
+  --color-warm-bg: #FAFAF8;
+  --color-warm-surface: #FFFFFF;
+  --color-warm-border: #E8E4DF;
+  --color-warm-text: #1A1A1A;
+  --color-warm-muted: #6B6B6B;
+}
+
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
