@@ -4,6 +4,7 @@ import MapPage from './pages/MapPage';
 import PulsePage from './pages/PulsePage';
 import ProfilePage from './pages/ProfilePage';
 import BottomNav from './components/ui/BottomNav';
+import ChatSheet from './components/chat/ChatSheet';
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/pulse" element={<PulsePage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
+      <ChatSheet />
       <BottomNav />
     </div>
   );
