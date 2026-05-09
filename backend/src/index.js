@@ -32,6 +32,7 @@ app.get('/health', (req, res) => {
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/jobs', require('./routes/jobs'));
+app.use('/api/chat', require('./routes/chat'));
 
 // Route index
 app.get('/api', (req, res) => {
@@ -44,6 +45,7 @@ app.get('/api', (req, res) => {
       'POST /api/webhooks/squad',
       'POST /api/jobs/:id/complete',
       'GET /api/jobs/:id',
+      'POST /api/chat',
       'WS /dashboard/feed'
     ]
   });
