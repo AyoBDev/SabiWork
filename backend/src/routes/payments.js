@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const knex = require('../database/knex');
 const squadService = require('../services/squad');
 const config = require('../config');
-const { PLATFORM_FEE_PERCENT } = require('../../../shared/constants');
+const { PLATFORM_FEE_PERCENT } = require('../../shared/constants');
 
 const router = Router();
 
