@@ -1,0 +1,29 @@
+/* pwa/src/index.css */
+@import "tailwindcss";
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-warm-bg text-warm-text font-sans m-0 p-0;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root {
+    height: 100dvh;
+    width: 100vw;
+  }
+}
+
+/* Mapbox overrides */
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right {
+  display: none !important;
+}
+
+.mapboxgl-canvas {
+  outline: none;
+}
