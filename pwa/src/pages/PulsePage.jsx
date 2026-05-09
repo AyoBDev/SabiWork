@@ -1,13 +1,39 @@
 // pwa/src/pages/PulsePage.jsx
+import useAppStore from '../stores/appStore';
+import WorkerPulse from '../components/pulse/WorkerPulse';
+import TraderPulse from '../components/pulse/TraderPulse';
+import SeekerPulse from '../components/pulse/SeekerPulse';
+
 export default function PulsePage() {
+  const { user } = useAppStore();
+
+  // Default to worker view for demo
+  const role = user?.role || 'worker';
+
+  // Mock user data for demo if no user logged in
+  const demoUser = user || {
+    role: 'worker',
+    name: 'Emeka Okafor',
+    trust_score: 0.76,
+    sabi_score: 62,
+    total_jobs: 34,
+    total_income: 510000,
+    service_areas: ['surulere', 'yaba', 'mushin'],
+    primary_trade: 'plumbing'
+  };
+
   return (
-    <div className="h-full pb-14 overflow-y-auto p-4">
-      <h1 className="text-xl font-bold text-warm-text mb-2">Pulse</h1>
-      <p className="text-warm-muted text-sm">Your economic dashboard is loading...</p>
-      <div className="mt-6 space-y-4">
-        <div className="bg-white rounded-xl p-4 border border-warm-border animate-pulse h-32" />
-        <div className="bg-white rounded-xl p-4 border border-warm-border animate-pulse h-24" />
-        <div className="bg-white rounded-xl p-4 border border-warm-border animate-pulse h-40" />
+    <div className="h-full pb-14 overflow-y-auto">
+      {/* Header */}
+      <div className="sticky top-0 bg-warm-bg/95 backdrop-blur-sm z-10 px-4 pt-4 pb-2 border-b border-warm-border">
+        <h1 className="text-lg font-bold text-warm-text">Pulse</h1>
+        <p className="text-xs text-warm-muted">Your economic dashboard</p>
+      </div>
+
+      <div className="p-4">
+        {role === 'worker' && <WorkerPulse user={demoUser} />}
+        {role === 'trader' && <TraderPulse user={demoUser} />}
+        {role === 'seeker' && <SeekerPulse user={demoUser} />}
       </div>
     </div>
   );
