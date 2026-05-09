@@ -4,6 +4,8 @@ const redis = require('../utils/redis');
 const knex = require('../database/knex');
 const squadService = require('../services/squad');
 const webhookVerify = require('../middleware/webhookVerify');
+const trustService = require('../services/trust');
+const sabiScoreService = require('../services/sabiScore');
 
 const router = Router();
 
@@ -61,11 +63,10 @@ router.post('/squad', webhookVerify, async (req, res) => {
 });
 
 async function handleChargeSuccessful(transactionRef, payload) {
-  const amount = (payload.data?.amount || payload.amount || 0) / 100; // kobo to Naira
+  const amount = (payload.data?.amount || payload.amount || 0) / 100;
   const channel = payload.data?.payment_channel || payload.payment_channel || 'unknown';
   const metadata = payload.data?.meta || payload.meta || {};
 
-  // Find and update the job
   const job = await knex('jobs')
     .where({ transaction_ref: transactionRef })
     .first();
@@ -79,7 +80,6 @@ async function handleChargeSuccessful(transactionRef, payload) {
         paid_at: new Date()
       });
 
-    // Log demand signal
     await knex('demand_signals').insert({
       trade_category: job.service_category,
       area: job.area,
@@ -91,21 +91,48 @@ async function handleChargeSuccessful(transactionRef, payload) {
       payment_channel: channel,
       recorded_at: new Date()
     });
+
+    if (job.worker_id) {
+      const trustResult = await trustService.applyTrustEvent(job.worker_id, 'payment_received', {
+        jobId: job.id,
+        paymentTimestamp: new Date(),
+        jobCreatedAt: job.created_at,
+        paymentChannel: channel,
+        buyerId: job.buyer_id
+      });
+
+      const sabiResult = await sabiScoreService.calculateWorkerSabiScore(job.worker_id);
+
+      await redis.publish('dashboard_events', JSON.stringify({
+        type: 'payment_received',
+        amount,
+        channel,
+        area: job.area,
+        trade: job.service_category,
+        worker_id: job.worker_id,
+        trust_update: {
+          before: trustResult.previousScore,
+          after: trustResult.newScore,
+          tier: trustResult.tier.label
+        },
+        sabi_score: sabiResult.score,
+        transaction_ref: transactionRef,
+        timestamp: new Date().toISOString()
+      }));
+
+      return;
+    }
   }
 
-  // Broadcast event (WebSocket — will be connected in Plan 5)
-  const event = {
+  await redis.publish('dashboard_events', JSON.stringify({
     type: 'payment_received',
     amount,
     channel,
-    area: job?.area || metadata.area,
-    trade: job?.service_category || metadata.service_category,
+    area: metadata.area,
+    trade: metadata.service_category,
     transaction_ref: transactionRef,
     timestamp: new Date().toISOString()
-  };
-
-  // Store for WebSocket broadcast (picked up by websocket.js)
-  await redis.publish('dashboard_events', JSON.stringify(event));
+  }));
 }
 
 async function handleChargeFailed(transactionRef, payload) {
@@ -135,13 +162,11 @@ async function handleVirtualAccountCredit(transactionRef, payload) {
 
   if (!virtualAccountNumber) return;
 
-  // Find worker or trader by virtual account
   let worker = await knex('workers')
     .where({ virtual_account_number: virtualAccountNumber })
     .first();
 
   if (worker) {
-    // Log income for SabiScore
     await knex('workers')
       .where({ id: worker.id })
       .update({
@@ -149,24 +174,29 @@ async function handleVirtualAccountCredit(transactionRef, payload) {
         last_active_at: new Date()
       });
 
-    // Broadcast event
+    const trustResult = await trustService.applyTrustEvent(worker.id, 'payment_received', {
+      paymentChannel: 'transfer'
+    });
+
+    const sabiResult = await sabiScoreService.calculateWorkerSabiScore(worker.id);
+
     await redis.publish('dashboard_events', JSON.stringify({
       type: 'va_credit',
       amount,
       worker_name: worker.name,
       area: worker.service_areas?.[0],
+      trust_score: trustResult.newScore,
+      sabi_score: sabiResult.score,
       timestamp: new Date().toISOString()
     }));
     return;
   }
 
-  // Check traders
   let trader = await knex('traders')
     .where({ virtual_account_number: virtualAccountNumber })
     .first();
 
   if (trader) {
-    // Auto-log as a sale
     await knex('sales_logs').insert({
       trader_id: trader.id,
       amount,
@@ -184,12 +214,15 @@ async function handleVirtualAccountCredit(transactionRef, payload) {
         total_logged_revenue: knex.raw('total_logged_revenue + ?', [amount])
       });
 
+    const sabiResult = await sabiScoreService.calculateTraderSabiScore(trader.id);
+
     await redis.publish('dashboard_events', JSON.stringify({
       type: 'sale_logged',
       amount,
       trader_name: trader.name,
       area: trader.area,
       category: trader.business_type,
+      sabi_score: sabiResult.score,
       timestamp: new Date().toISOString()
     }));
   }
