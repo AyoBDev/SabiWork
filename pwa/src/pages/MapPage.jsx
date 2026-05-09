@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import MapCanvas from '../components/map/MapCanvas';
 import LayerToggle from '../components/map/LayerToggle';
+import AIButton from '../components/chat/AIButton';
 import useAppStore from '../stores/appStore';
 import api from '../services/api';
 
@@ -27,6 +28,7 @@ export default function MapPage() {
     <div className="absolute inset-0 pb-14">
       <MapCanvas />
       <LayerToggle />
+      <AIButton />
     </div>
   );
 }
