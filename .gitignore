@@ -1,8 +1,41 @@
+# Dependencies
 node_modules/
+package-lock.json
+
+# Environment
 .env
-.DS_Store
+.env.local
+.env.*.local
+
+# Build outputs
 dist/
 build/
-*.log
-.vite/
 .next/
+.vite/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# WhatsApp Bot
+whatsapp-bot/auth_state/
+*.session.json
+
+# Docker
+*.pid
+*.seed
+*.pid.lock
