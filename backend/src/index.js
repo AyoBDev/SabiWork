@@ -4,9 +4,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { createServer } = require('http');
 const config = require('./config');
+const { initWebSocket } = require('./utils/websocket');
 
 const app = express();
 const server = createServer(app);
+
+// Initialize WebSocket server
+initWebSocket(server);
 
 // Middleware
 app.use(helmet());
@@ -15,14 +19,20 @@ app.use(express.json());
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'sabiwork-backend', timestamp: new Date().toISOString() });
+  const { getClientCount } = require('./utils/websocket');
+  res.json({
+    status: 'ok',
+    service: 'sabiwork-backend',
+    timestamp: new Date().toISOString(),
+    dashboard_clients: getClientCount()
+  });
 });
 
 // API routes
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 
-// Placeholder for routes added in later plans
+// Route index
 app.get('/api', (req, res) => {
   res.json({
     message: 'SabiWork API v1.0',
@@ -30,7 +40,8 @@ app.get('/api', (req, res) => {
       'POST /api/payments/initiate',
       'GET /api/payments/verify/:ref',
       'POST /api/payments/payout',
-      'POST /api/webhooks/squad'
+      'POST /api/webhooks/squad',
+      'WS /dashboard/feed'
     ]
   });
 });
@@ -38,6 +49,7 @@ app.get('/api', (req, res) => {
 // Start server
 server.listen(config.port, () => {
   console.log(`SabiWork backend running on port ${config.port}`);
+  console.log(`WebSocket feed available at ws://localhost:${config.port}/dashboard/feed`);
 });
 
 module.exports = { app, server };
