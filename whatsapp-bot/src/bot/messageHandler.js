@@ -5,6 +5,7 @@ import { handleTrader, isTraderMessage } from '../handlers/trader.js';
 import { handleSeeker } from '../handlers/seeker.js';
 import { handleWorkerCommand } from '../handlers/worker.js';
 import { handleInvest, isInvestCommand } from '../handlers/invest.js';
+import { cancelGhost } from '../handlers/ghost.js';
 
 // Conversation state: phone -> { step, data, flow }
 const conversations = new Map();
@@ -17,6 +18,8 @@ const SEEKER_KEYWORDS = ['find work', 'job', 'apprentice', 'learn', 'pathway', '
 const TRADER_KEYWORDS = ['sold', 'sale', 'REPORT'];
 
 export async function handleMessage(phone, text) {
+  cancelGhost();
+
   const state = conversations.get(phone);
   const upperText = text.toUpperCase().trim();
 
