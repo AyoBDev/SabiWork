@@ -37,6 +37,11 @@
   100% { transform: scale(2); opacity: 0; }
 }
 
+@keyframes ping-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
 .animate-count-up {
   animation: count-up 0.6s ease-out;
 }
@@ -47,4 +52,21 @@
 
 .animate-pulse-marker {
   animation: pulse-marker 1.5s ease-out;
+}
+
+.ping-marker {
+  width: 12px;
+  height: 12px;
+  background: #22c55e;
+  border-radius: 50%;
+  position: relative;
+}
+
+.ping-marker::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: ping-pulse 1.5s ease-out infinite;
 }
