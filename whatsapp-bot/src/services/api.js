@@ -64,5 +64,9 @@ export const backendAPI = {
   getMyInvestments: (phone) =>
     request('GET', `/api/invest/my-investments?phone=${phone}`),
   getRoundStatus: (id, phone) =>
-    request('GET', `/api/invest/rounds/${id}/status?phone=${phone}`)
+    request('GET', `/api/invest/rounds/${id}/status?phone=${phone}`),
+
+  // Demo events (non-critical, fire-and-forget)
+  notifyEvent: (type, data) =>
+    request('POST', '/api/demo/event', { type, ...data }).catch(() => {})
 };

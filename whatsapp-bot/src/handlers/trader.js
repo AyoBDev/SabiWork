@@ -9,6 +9,13 @@ export function isTraderMessage(text) {
 }
 
 export async function handleTrader(phone, text, state, conversations) {
+  // Notify agent feed that a message arrived
+  backendAPI.notifyEvent('message_parsed', {
+    actor: phone,
+    description: `WhatsApp: "${text}"`,
+    metadata: { channel: 'whatsapp', phone }
+  });
+
   const upperText = text.toUpperCase().trim();
 
   // REPORT command
