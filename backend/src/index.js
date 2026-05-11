@@ -38,6 +38,7 @@ app.use('/api/seekers', require('./routes/seekers'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/intelligence', require('./routes/intelligence'));
 app.use('/api/invest', require('./routes/invest'));
+app.use('/api/demo', require('./routes/demo'));
 
 // Route index
 app.get('/api', (req, res) => {
