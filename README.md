@@ -85,8 +85,8 @@ SabiWork/
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/your-team/sabiwork.git
-cd sabiwork
+git clone https://github.com/AyoBDev/SabiWork.git
+cd SabiWork
 
 # 2. Copy env file and add your keys
 cp .env.example .env
@@ -172,7 +172,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000
 | **AI Automation** | Groq-powered intent classification, worker-buyer matching (Llama 3.3-70b ranking), NLP trade parsing from WhatsApp messages, demand-driven career pathway recommendations |
 | **Squad APIs** | 6 products integrated end-to-end: payment initiation, verification, webhooks, bank transfer payouts, virtual accounts, account lookup |
 | **Use of Data** | TimescaleDB time-series analytics, real-time economic dashboards, transaction pattern analysis, demand heatmaps via Mapbox |
-| **Financial Innovation** | SabiScore (0-100) builds credit identity from informal transactions; progressive financial access (savings -> microloans -> full suite); trust-based pricing tiers |
+| **Financial Innovation** | SabiScore (0–100) as alternative credit identity built from informal transactions; progressive financial access (savings → microloans → full suite); crowd-invest micro-funding for traders; auto-split repayment engine; trust-based pricing tiers — replaces traditional credit bureaus for the unbanked |
 
 ---
 
@@ -210,9 +210,35 @@ The seed script creates test users automatically. Check the backend logs on firs
 
 ## User Flows
 
-1. **Buyer (PWA):** Chat with AI -> get matched to worker -> pay via Squad -> worker notified -> job completed -> rating -> payout sent
-2. **Trader (WhatsApp):** Send natural language sale messages -> NLP parses transaction -> SabiScore updates -> weekly financial reports
-3. **Seeker (PWA + WhatsApp):** View demand heatmap -> identify skills gaps -> find apprenticeships -> apply -> learn -> graduate to worker
+All users can access SabiWork through the **PWA** or **WhatsApp**. A **USSD gateway** (`*347*777#`) serves users on feature phones with no internet. A dedicated **mobile app** (React Native) is planned for future release.
+
+| # | User | Flow |
+|---|------|------|
+| 1 | **Buyer** | Chat with AI → get matched to worker → pay via Squad → worker notified → job completed → rating → payout sent |
+| 2 | **Worker** | Onboard (self-serve or via field agent) → virtual account created → receive jobs → complete & get paid → SabiScore grows → unlock microloans |
+| 3 | **Trader** | Send natural language sale messages → NLP parses transaction → SabiScore updates → weekly financial reports → unlock crowd-invest funding |
+| 4 | **Investor** | Browse open investment rounds → fund a trader (micro-invest) → auto-repayment split from trader sales → track returns in portfolio |
+| 5 | **Seeker** | View demand heatmap → identify skills gaps → find apprenticeships → apply → learn → graduate to worker |
+| 6 | **Field Agent** | GPS-verified onboarding of workers/traders in markets → earn commission per onboard → trust_score boost for verified users |
+
+### Channel Coverage
+
+| Channel | Users Served |
+|---------|-------------|
+| PWA | Buyers, Workers, Investors, Seekers |
+| WhatsApp | Traders, Workers, Seekers, Investors |
+| USSD (`*347*777#`) | All users on feature phones (no data required) |
+| Mobile App *(roadmap)* | All users (React Native, planned) |
+
+---
+
+## Financial Innovation — SabiScore as Credit Identity
+
+SabiScore (0–100) is an alternative credit scoring system built entirely from informal economic activity. Every completed gig, every logged sale, every on-time investor repayment, and every positive rating contributes to a verifiable financial identity — replacing the traditional credit bureau model that excludes 60M+ informal workers.
+
+**Progressive financial access:** SabiScore 30+ → savings products | SabiScore 50+ → microloans | SabiScore 70+ → full financial suite + crowd-invest eligibility
+
+This turns everyday hustle into bankable trust — *"Sabi dey pay"* becomes a provable statement.
 
 ---
 
