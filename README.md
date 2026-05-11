@@ -210,7 +210,7 @@ The seed script creates test users automatically. Check the backend logs on firs
 
 ## User Flows
 
-All users can access SabiWork through the **PWA** or **WhatsApp**. A **USSD gateway** (`*347*777#`) serves users on feature phones with no internet. A dedicated **mobile app** (React Native) is planned for future release.
+All users can access SabiWork through the **PWA** or **WhatsApp**. A **USSD gateway** serves users on feature phones with no internet *(not yet implemented)*. A dedicated **mobile app** (React Native) is planned for future release.
 
 | # | User | Flow |
 |---|------|------|
@@ -227,7 +227,7 @@ All users can access SabiWork through the **PWA** or **WhatsApp**. A **USSD gate
 |---------|-------------|
 | PWA | Buyers, Workers, Investors, Seekers |
 | WhatsApp | Traders, Workers, Seekers, Investors |
-| USSD (`*347*777#`) | All users on feature phones (no data required) |
+| USSD *(not yet implemented)* | All users on feature phones (no data required) |
 | Mobile App *(roadmap)* | All users (React Native, planned) |
 
 ---
@@ -248,10 +248,8 @@ Built for Squad Hackathon 3.0 — Challenge 02: Intelligent Economic System
 
 | Name | Role |
 |------|------|
-| TBD | Backend / AI |
-| TBD | Frontend / PWA |
-| TBD | Design / UX |
-| TBD | Product / Demo |
+| Ayobami Ayomikun | Full Stack Developer |
+| Adekeye Olaoluwa | Product Designer / UI/UX Designer |
 
 ---
 
