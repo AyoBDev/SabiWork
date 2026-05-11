@@ -2,7 +2,7 @@
 const { Router } = require('express');
 const knex = require('../database/knex');
 const squadService = require('../services/squad');
-const redis = require('../utils/redis');
+const eventBus = require('../utils/eventBus');
 const { classifySale } = require('../services/nlp');
 const { calculateTraderSabiScore } = require('../services/sabiScore');
 const { processSaleSplit } = require('../services/investSplit');
@@ -55,12 +55,11 @@ router.post('/register', async (req, res) => {
       console.error('Trader VA creation failed:', vaError.message);
     }
 
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'trader_registered',
-      trader_name: name,
-      area,
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('trader_registered', {
+      actor: name,
+      description: `${name} registered as trader in ${area || 'Lagos'}`,
+      metadata: { trader_name: name, area: area || 'Lagos', phone }
+    });
 
     return res.status(201).json({
       success: true,
@@ -147,15 +146,11 @@ router.post('/log-sale', async (req, res) => {
       console.error('Investment split error:', splitErr.message);
     }
 
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'sale_logged',
-      amount: sale.amount,
-      trader_name: trader.name,
-      area: trader.area,
-      category: sale.category,
-      sabi_score: sabiResult.score,
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('sale_logged', {
+      actor: trader.name || phone,
+      description: `Logged sale: ${sale.quantity}x ${sale.item_name} for ₦${sale.amount.toLocaleString()}`,
+      metadata: { trader_name: trader.name, item: sale.item_name, amount: sale.amount, quantity: sale.quantity, area: trader.area, category: sale.category, sabi_score: sabiResult.score }
+    });
 
     return res.status(200).json({
       success: true,

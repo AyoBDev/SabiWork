@@ -3,6 +3,7 @@ const { Router } = require('express');
 const knex = require('../database/knex');
 const squadService = require('../services/squad');
 const redis = require('../utils/redis');
+const eventBus = require('../utils/eventBus');
 const { applyTrustEvent } = require('../services/trust');
 const { SUPPORTED_BANKS } = require('../../shared/constants');
 
@@ -171,14 +172,11 @@ router.post('/onboard', async (req, res) => {
     }
 
     // Broadcast to dashboard
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'worker_onboarded',
-      worker_name: resolvedName,
-      trade: primary_trade,
-      area: service_areas?.[0] || 'Lagos',
-      channel: onboarding_channel || 'whatsapp',
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('worker_onboarded', {
+      actor: resolvedName,
+      description: `${resolvedName} onboarded as ${primary_trade} via ${onboarding_channel || 'whatsapp'}`,
+      metadata: { worker_name: resolvedName, skill: primary_trade, area: service_areas?.[0] || 'Lagos', channel: onboarding_channel || 'whatsapp', phone }
+    });
 
     return res.status(201).json({
       success: true,

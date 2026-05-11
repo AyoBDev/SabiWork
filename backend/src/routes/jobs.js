@@ -1,7 +1,7 @@
 // backend/src/routes/jobs.js
 const { Router } = require('express');
 const knex = require('../database/knex');
-const redis = require('../utils/redis');
+const eventBus = require('../utils/eventBus');
 const trustService = require('../services/trust');
 const sabiScoreService = require('../services/sabiScore');
 
@@ -80,13 +80,11 @@ router.post('/:id/rate', async (req, res) => {
     const trustResult = await trustService.applyTrustEvent(job.worker_id, 'rating_received', delta, job.id);
 
     // Broadcast to dashboard
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'rating_received',
-      worker_id: job.worker_id,
-      rating,
-      trust_score: trustResult.newScore,
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('rating_received', {
+      actor: 'Buyer',
+      description: `Job rated ${rating}/5 — trust score updated`,
+      metadata: { worker_id: job.worker_id, rating, trust_score: trustResult.newScore }
+    });
 
     res.json({
       message: 'Rating submitted',
@@ -140,16 +138,11 @@ router.post('/:id/complete', async (req, res) => {
 
     const worker = await knex('workers').where({ id: job.worker_id }).first();
 
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'job_completed',
-      worker_name: worker.name,
-      area: job.area,
-      trade: job.service_category,
-      rating,
-      trust_score: trustResult.newScore,
-      sabi_score: sabiResult.score,
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('job_completed', {
+      actor: worker.name,
+      description: `Job completed: ${job.service_category}. Rated ${rating}/5. SabiScore: ${sabiResult.score}`,
+      metadata: { worker_name: worker.name, service: job.service_category, area: job.area, rating, trust_score: trustResult.newScore, sabi_score: sabiResult.score }
+    });
 
     return res.status(200).json({
       success: true,

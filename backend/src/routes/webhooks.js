@@ -1,6 +1,7 @@
 // backend/src/routes/webhooks.js
 const { Router } = require('express');
 const redis = require('../utils/redis');
+const eventBus = require('../utils/eventBus');
 const knex = require('../database/knex');
 const squadService = require('../services/squad');
 const webhookVerify = require('../middleware/webhookVerify');
@@ -103,36 +104,40 @@ async function handleChargeSuccessful(transactionRef, payload) {
 
       const sabiResult = await sabiScoreService.calculateWorkerSabiScore(job.worker_id);
 
-      await redis.publish('dashboard_events', JSON.stringify({
-        type: 'payment_received',
-        amount,
-        channel,
-        area: job.area,
-        trade: job.service_category,
-        worker_id: job.worker_id,
-        trust_update: {
-          before: trustResult.previousScore,
-          after: trustResult.newScore,
-          tier: trustResult.tier.label
-        },
-        sabi_score: sabiResult.score,
-        transaction_ref: transactionRef,
-        timestamp: new Date().toISOString()
-      }));
+      eventBus.emit('payment_received', {
+        actor: 'Buyer',
+        description: `Payment received: ₦${amount.toLocaleString()} via ${channel}`,
+        metadata: {
+          amount,
+          channel,
+          area: job.area,
+          trade: job.service_category,
+          worker_id: job.worker_id,
+          trust_update: {
+            before: trustResult.previousScore,
+            after: trustResult.newScore,
+            tier: trustResult.tier.label
+          },
+          sabi_score: sabiResult.score,
+          transaction_ref: transactionRef
+        }
+      });
 
       return;
     }
   }
 
-  await redis.publish('dashboard_events', JSON.stringify({
-    type: 'payment_received',
-    amount,
-    channel,
-    area: metadata.area,
-    trade: metadata.service_category,
-    transaction_ref: transactionRef,
-    timestamp: new Date().toISOString()
-  }));
+  eventBus.emit('payment_received', {
+    actor: 'Buyer',
+    description: `Payment received: ₦${amount.toLocaleString()} via ${channel}`,
+    metadata: {
+      amount,
+      channel,
+      area: metadata.area,
+      trade: metadata.service_category,
+      transaction_ref: transactionRef
+    }
+  });
 }
 
 async function handleChargeFailed(transactionRef, payload) {
@@ -188,15 +193,17 @@ async function handleVirtualAccountCredit(transactionRef, payload) {
 
     const sabiResult = await sabiScoreService.calculateWorkerSabiScore(worker.id);
 
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'va_credit',
-      amount,
-      worker_name: worker.name,
-      area: worker.service_areas?.[0],
-      trust_score: trustResult.newScore,
-      sabi_score: sabiResult.score,
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('va_credit', {
+      actor: worker.name,
+      description: `Virtual account credited: ₦${amount.toLocaleString()}`,
+      metadata: {
+        amount,
+        worker_name: worker.name,
+        area: worker.service_areas?.[0],
+        trust_score: trustResult.newScore,
+        sabi_score: sabiResult.score
+      }
+    });
     return;
   }
 
@@ -232,15 +239,17 @@ async function handleVirtualAccountCredit(transactionRef, payload) {
       console.error('Investment split error (webhook):', splitErr.message);
     }
 
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'sale_logged',
-      amount,
-      trader_name: trader.name,
-      area: trader.area,
-      category: trader.business_type,
-      sabi_score: sabiResult.score,
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('sale_logged', {
+      actor: trader.name,
+      description: `Logged sale: Auto-logged (VA credit) for ₦${amount.toLocaleString()}`,
+      metadata: {
+        amount,
+        trader_name: trader.name,
+        area: trader.area,
+        category: trader.business_type,
+        sabi_score: sabiResult.score
+      }
+    });
   }
 }
 
@@ -274,16 +283,18 @@ async function handleInvestmentCredit(referenceCode, amount, transactionRef) {
 
   const trader = await knex('traders').where({ id: round.trader_id }).first();
 
-  await redis.publish('dashboard_events', JSON.stringify({
-    type: 'investment_received',
-    amount,
-    investor_name: investment.investor_name,
-    trader_name: trader?.name,
-    round_id: round.id,
-    raised_so_far: updated.raised_amount / 100,
-    target: round.target_amount / 100,
-    timestamp: new Date().toISOString()
-  }));
+  eventBus.emit('investment_received', {
+    actor: investment.investor_name,
+    description: `Invested ₦${amount.toLocaleString()} in ${trader?.name}'s round`,
+    metadata: {
+      amount,
+      investor_name: investment.investor_name,
+      trader_name: trader?.name,
+      round_id: round.id,
+      raised_so_far: updated.raised_amount / 100,
+      target: round.target_amount / 100
+    }
+  });
 }
 
 module.exports = router;

@@ -2,7 +2,7 @@
 const { Router } = require('express');
 const knex = require('../database/knex');
 const squadService = require('../services/squad');
-const redis = require('../utils/redis');
+const eventBus = require('../utils/eventBus');
 const { generateReferencePrefix } = require('../services/investSplit');
 
 const router = Router();
@@ -90,14 +90,16 @@ router.post('/rounds', async (req, res) => {
     }).returning('*');
 
     // Publish dashboard event
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'investment_round_created',
-      round_id: round.id,
-      trader_name: trader.name,
-      target_amount,
-      visibility,
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('investment_round_created', {
+      actor: trader.name,
+      description: `Created investment round: ₦${(target_amount / 100).toLocaleString()} target, ${visibility}`,
+      metadata: {
+        round_id: round.id,
+        trader_name: trader.name,
+        target_amount,
+        visibility
+      }
+    });
 
     return res.status(201).json({
       success: true,
@@ -297,13 +299,15 @@ router.post('/rounds/:id/join', async (req, res) => {
       .first();
 
     // Publish dashboard event
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'investment_joined',
-      round_id: round.id,
-      investor_name: resolvedName,
-      amount,
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('investment_joined', {
+      actor: resolvedName,
+      description: `Joined investment round with ₦${(amount / 100).toLocaleString()}`,
+      metadata: {
+        round_id: round.id,
+        investor_name: resolvedName,
+        amount
+      }
+    });
 
     return res.status(201).json({
       success: true,
