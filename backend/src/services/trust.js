@@ -13,7 +13,8 @@ const SIGNALS = {
   RATING_ABOVE_3: 0.01,
   RATING_BELOW_3: -0.02,
   APPRENTICE_TRAINED: 0.05,
-  AGENT_VERIFIED: 0.05
+  AGENT_VERIFIED: 0.05,
+  INVESTMENT_REPAID: 0.04
 };
 
 const DAMPENING_FACTOR = 0.7;
@@ -99,6 +100,11 @@ async function applyTrustEvent(workerId, eventType, options = {}) {
 
     case 'agent_verified': {
       delta += SIGNALS.AGENT_VERIFIED;
+      break;
+    }
+
+    case 'investment_repaid': {
+      delta += SIGNALS.INVESTMENT_REPAID;
       break;
     }
 

@@ -9,20 +9,61 @@ const { SUPPORTED_BANKS } = require('../../shared/constants');
 const router = Router();
 
 /**
+ * POST /api/workers/lookup-account
+ * Resolve account name from bank_name + account_number via Squad API
+ * Used during onboarding so the user doesn't have to type their name
+ */
+router.post('/lookup-account', async (req, res) => {
+  try {
+    const { bank_name, bank_code, account_number } = req.body;
+
+    if (!account_number || (!bank_name && !bank_code)) {
+      return res.status(400).json({ error: 'Missing required fields: account_number and (bank_name or bank_code)' });
+    }
+
+    // Resolve bank code from name if needed
+    let resolvedBankCode = bank_code;
+    if (!resolvedBankCode && bank_name) {
+      const bank = SUPPORTED_BANKS.find(b =>
+        b.name.toLowerCase() === bank_name.toLowerCase()
+      );
+      if (!bank) {
+        return res.status(400).json({ error: `Unsupported bank: ${bank_name}. Supported: ${SUPPORTED_BANKS.map(b => b.name).join(', ')}` });
+      }
+      resolvedBankCode = bank.code;
+    }
+
+    const lookup = await squadService.lookupAccount(resolvedBankCode, account_number);
+
+    return res.status(200).json({
+      success: true,
+      account_name: lookup.accountName,
+      account_number: lookup.accountNumber,
+      bank_code: resolvedBankCode
+    });
+  } catch (error) {
+    console.error('Account lookup error:', error);
+    return res.status(400).json({ error: 'Account lookup failed. Please check your bank and account number.', details: error.message });
+  }
+});
+
+/**
  * POST /api/workers/onboard
- * Register a new worker — verifies bank, creates virtual account
+ * Register a new worker — two flows supported:
+ * 1. Provide name + phone + trade (basic)
+ * 2. Provide bank_name + account_number + phone + trade (name resolved from Squad)
  */
 router.post('/onboard', async (req, res) => {
   try {
     const {
       name, phone, primary_trade, secondary_trades,
-      service_areas, bank_name, account_number,
+      service_areas, bank_name, bank_code, account_number,
       location_lat, location_lng,
       onboarding_channel, onboarded_by
     } = req.body;
 
-    if (!name || !phone || !primary_trade) {
-      return res.status(400).json({ error: 'Missing required fields: name, phone, primary_trade' });
+    if (!phone || !primary_trade) {
+      return res.status(400).json({ error: 'Missing required fields: phone, primary_trade' });
     }
 
     // Check if already registered
@@ -31,9 +72,9 @@ router.post('/onboard', async (req, res) => {
       return res.status(409).json({ error: 'Worker already registered', worker_id: existing.id });
     }
 
-    // Resolve bank code
-    let bankCode = null;
-    if (bank_name && account_number) {
+    // Resolve bank code from name or code
+    let bankCode = bank_code || null;
+    if (!bankCode && bank_name && account_number) {
       const bank = SUPPORTED_BANKS.find(b =>
         b.name.toLowerCase() === bank_name.toLowerCase()
       );
@@ -43,44 +84,74 @@ router.post('/onboard', async (req, res) => {
       bankCode = bank.code;
     }
 
-    // Verify bank account via Squad
+    // Resolve name from bank account if not provided
+    let resolvedName = name;
     let accountName = name;
     if (bankCode && account_number) {
       try {
         const lookup = await squadService.lookupAccount(bankCode, account_number);
         accountName = lookup.accountName;
+        // If no name was provided, use the bank account name
+        if (!resolvedName) {
+          resolvedName = lookup.accountName;
+        }
       } catch (lookupError) {
         console.error('Bank lookup failed:', lookupError.message);
-        // Continue with provided name — don't block onboarding
+        // If no name provided and lookup failed, we can't proceed
+        if (!resolvedName) {
+          return res.status(400).json({ error: 'Could not verify account. Please provide your name or check your bank details.' });
+        }
+      }
+    }
+
+    // Final validation — must have a name from either source
+    if (!resolvedName) {
+      return res.status(400).json({ error: 'Name is required. Provide your name or bank details to auto-resolve.' });
+    }
+
+    // Check Redis for location captured from landing page if not provided
+    let finalLat = location_lat || null;
+    let finalLng = location_lng || null;
+    if (!finalLat && phone) {
+      try {
+        const cached = await redis.get(`location_capture:${phone}`);
+        if (cached) {
+          const loc = JSON.parse(cached);
+          finalLat = loc.lat;
+          finalLng = loc.lng;
+          await redis.del(`location_capture:${phone}`);
+        }
+      } catch (e) {
+        // Non-blocking
       }
     }
 
     // Insert worker
     const [worker] = await knex('workers').insert({
-      name,
+      name: resolvedName,
       phone,
       primary_trade,
       secondary_trades: secondary_trades || [],
       service_areas: service_areas || [],
-      location_lat: location_lat || null,
-      location_lng: location_lng || null,
+      location_lat: finalLat,
+      location_lng: finalLng,
       bank_code: bankCode,
       account_number: account_number || null,
       account_name: accountName,
       trust_score: onboarding_channel === 'field_agent' ? 0.05 : 0.0,
       onboarding_channel: onboarding_channel || 'whatsapp',
       onboarded_by: onboarded_by || null,
-      gps_verified: !!(location_lat && location_lng && onboarding_channel === 'field_agent')
+      gps_verified: !!(finalLat && finalLng && onboarding_channel === 'field_agent')
     }).returning('*');
 
     // Create Squad virtual account
     let virtualAccountNumber = null;
     try {
-      const nameParts = name.split(' ');
+      const nameParts = resolvedName.split(' ');
       const va = await squadService.createVirtualAccount({
         customerId: worker.id,
-        firstName: nameParts[0] || name,
-        lastName: nameParts.slice(1).join(' ') || name,
+        firstName: nameParts[0] || resolvedName,
+        lastName: nameParts.slice(1).join(' ') || resolvedName,
         phone,
         email: `${worker.id}@sabiwork.ng`
       });
@@ -102,7 +173,7 @@ router.post('/onboard', async (req, res) => {
     // Broadcast to dashboard
     await redis.publish('dashboard_events', JSON.stringify({
       type: 'worker_onboarded',
-      worker_name: name,
+      worker_name: resolvedName,
       trade: primary_trade,
       area: service_areas?.[0] || 'Lagos',
       channel: onboarding_channel || 'whatsapp',
@@ -112,7 +183,7 @@ router.post('/onboard', async (req, res) => {
     return res.status(201).json({
       success: true,
       worker_id: worker.id,
-      name,
+      name: resolvedName,
       phone,
       primary_trade,
       service_areas,
@@ -124,6 +195,30 @@ router.post('/onboard', async (req, res) => {
   } catch (error) {
     console.error('Worker onboarding error:', error);
     return res.status(500).json({ error: 'Onboarding failed', details: error.message });
+  }
+});
+
+/**
+ * POST /api/workers/location-capture
+ * Store location captured from the landing page (linked via WhatsApp QR/URL)
+ * Stored in Redis with 10-minute TTL — the onboard handler picks it up
+ */
+router.post('/location-capture', async (req, res) => {
+  try {
+    const { phone, lat, lng, accuracy } = req.body;
+
+    if (!phone || !lat || !lng) {
+      return res.status(400).json({ error: 'Missing required fields: phone, lat, lng' });
+    }
+
+    // Store in Redis with 10-minute expiry
+    const key = `location_capture:${phone}`;
+    await redis.set(key, JSON.stringify({ lat, lng, accuracy }), 'EX', 600);
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Location capture error:', error);
+    return res.status(500).json({ error: 'Failed to save location' });
   }
 });
 

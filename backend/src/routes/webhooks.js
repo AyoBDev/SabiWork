@@ -159,8 +159,16 @@ async function handleChargeFailed(transactionRef, payload) {
 async function handleVirtualAccountCredit(transactionRef, payload) {
   const amount = (payload.data?.amount || payload.amount || 0) / 100;
   const virtualAccountNumber = payload.data?.virtual_account_number;
+  const narration = payload.data?.narration || payload.narration || '';
 
   if (!virtualAccountNumber) return;
+
+  // Check if this is an investment payment (narration matches INV-XXXXXX-NNN pattern)
+  const investMatch = narration.match(/INV-[A-Z0-9]{6}-\d{3}/);
+  if (investMatch) {
+    await handleInvestmentCredit(investMatch[0], amount, transactionRef);
+    return;
+  }
 
   let worker = await knex('workers')
     .where({ virtual_account_number: virtualAccountNumber })
@@ -216,6 +224,14 @@ async function handleVirtualAccountCredit(transactionRef, payload) {
 
     const sabiResult = await sabiScoreService.calculateTraderSabiScore(trader.id);
 
+    // Trigger investment auto-split on sale
+    const { processSaleSplit } = require('../services/investSplit');
+    try {
+      await processSaleSplit(trader.id, null, amount * 100);
+    } catch (splitErr) {
+      console.error('Investment split error (webhook):', splitErr.message);
+    }
+
     await redis.publish('dashboard_events', JSON.stringify({
       type: 'sale_logged',
       amount,
@@ -226,6 +242,48 @@ async function handleVirtualAccountCredit(transactionRef, payload) {
       timestamp: new Date().toISOString()
     }));
   }
+}
+
+async function handleInvestmentCredit(referenceCode, amount, transactionRef) {
+  const investment = await knex('investments')
+    .where({ reference_code: referenceCode })
+    .first();
+
+  if (!investment) {
+    console.error('Investment not found for reference:', referenceCode);
+    return;
+  }
+
+  const round = await knex('investment_rounds').where({ id: investment.round_id }).first();
+  if (!round || round.status === 'completed' || round.status === 'cancelled') return;
+
+  const amountKobo = Math.round(amount * 100);
+
+  // Update raised amount on round
+  await knex('investment_rounds')
+    .where({ id: round.id })
+    .update({ raised_amount: knex.raw('raised_amount + ?', [amountKobo]) });
+
+  // Check if round is now fully funded
+  const updated = await knex('investment_rounds').where({ id: round.id }).first();
+  if (updated.raised_amount >= updated.target_amount && updated.status === 'open') {
+    await knex('investment_rounds')
+      .where({ id: round.id })
+      .update({ status: 'repaying', funded_at: new Date() });
+  }
+
+  const trader = await knex('traders').where({ id: round.trader_id }).first();
+
+  await redis.publish('dashboard_events', JSON.stringify({
+    type: 'investment_received',
+    amount,
+    investor_name: investment.investor_name,
+    trader_name: trader?.name,
+    round_id: round.id,
+    raised_so_far: updated.raised_amount / 100,
+    target: round.target_amount / 100,
+    timestamp: new Date().toISOString()
+  }));
 }
 
 module.exports = router;

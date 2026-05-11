@@ -5,6 +5,7 @@ const squadService = require('../services/squad');
 const redis = require('../utils/redis');
 const { classifySale } = require('../services/nlp');
 const { calculateTraderSabiScore } = require('../services/sabiScore');
+const { processSaleSplit } = require('../services/investSplit');
 
 const router = Router();
 
@@ -138,6 +139,13 @@ router.post('/log-sale', async (req, res) => {
     const previousScore = trader.sabi_score;
     const sabiResult = await calculateTraderSabiScore(trader.id);
     const weeksToLoan = sabiResult.score >= 50 ? 0 : Math.ceil((50 - sabiResult.score) / 2);
+
+    // Trigger investment auto-split if trader has active round
+    try {
+      await processSaleSplit(trader.id, null, sale.amount * 100);
+    } catch (splitErr) {
+      console.error('Investment split error:', splitErr.message);
+    }
 
     await redis.publish('dashboard_events', JSON.stringify({
       type: 'sale_logged',

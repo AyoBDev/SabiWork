@@ -37,6 +37,7 @@ app.use('/api/traders', require('./routes/traders'));
 app.use('/api/seekers', require('./routes/seekers'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/intelligence', require('./routes/intelligence'));
+app.use('/api/invest', require('./routes/invest'));
 
 // Route index
 app.get('/api', (req, res) => {

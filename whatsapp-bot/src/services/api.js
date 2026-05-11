@@ -25,6 +25,8 @@ export const backendAPI = {
     request('POST', '/api/chat', { message, ...context }),
 
   // Workers
+  lookupAccount: (data) =>
+    request('POST', '/api/workers/lookup-account', data),
   onboardWorker: (data) =>
     request('POST', '/api/workers/onboard', data),
   getWorkerByPhone: (phone) =>
@@ -48,5 +50,19 @@ export const backendAPI = {
 
   // Scores
   getScores: (phone) =>
-    request('GET', `/api/workers/phone/${phone}/scores`)
+    request('GET', `/api/workers/phone/${phone}/scores`),
+
+  // Invest
+  createRound: (data) =>
+    request('POST', '/api/invest/rounds', data),
+  getRound: (id) =>
+    request('GET', `/api/invest/rounds/${id}`),
+  joinRound: (id, data) =>
+    request('POST', `/api/invest/rounds/${id}/join`, data),
+  getMyRounds: (phone) =>
+    request('GET', `/api/invest/my-rounds?phone=${phone}`),
+  getMyInvestments: (phone) =>
+    request('GET', `/api/invest/my-investments?phone=${phone}`),
+  getRoundStatus: (id, phone) =>
+    request('GET', `/api/invest/rounds/${id}/status?phone=${phone}`)
 };

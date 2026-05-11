@@ -4,12 +4,14 @@ import { handleBuyer } from '../handlers/buyer.js';
 import { handleTrader, isTraderMessage } from '../handlers/trader.js';
 import { handleSeeker } from '../handlers/seeker.js';
 import { handleWorkerCommand } from '../handlers/worker.js';
+import { handleInvest, isInvestCommand } from '../handlers/invest.js';
 
 // Conversation state: phone -> { step, data, flow }
 const conversations = new Map();
 
 // Keywords that trigger specific flows
 const WORKER_COMMANDS = ['READY', 'BUSY', 'SCORE', 'ACCEPT', 'DECLINE'];
+const INVEST_COMMANDS = ['INVEST', 'ROUND', 'MYINVEST', 'INVESTORS'];
 const REGISTER_KEYWORDS = ['register', 'join', 'start', 'signup', 'hello', 'hi'];
 const SEEKER_KEYWORDS = ['find work', 'job', 'apprentice', 'learn', 'pathway', 'APPLY'];
 const TRADER_KEYWORDS = ['sold', 'sale', 'REPORT'];
@@ -17,6 +19,18 @@ const TRADER_KEYWORDS = ['sold', 'sale', 'REPORT'];
 export async function handleMessage(phone, text) {
   const state = conversations.get(phone);
   const upperText = text.toUpperCase().trim();
+
+  // 0. Handle location capture response from landing page (LOC:lat,lng,accuracy)
+  if (upperText.startsWith('LOC:') && state && state.flow === 'onboard') {
+    const parts = text.substring(4).split(',');
+    if (parts.length >= 2) {
+      state.data.location_lat = parseFloat(parts[0]);
+      state.data.location_lng = parseFloat(parts[1]);
+      state.data.location_accuracy = parts[2] ? parseInt(parts[2]) : null;
+      conversations.set(phone, state);
+      return `📍 Location received! (±${parts[2] || '?'}m)\n\nContinuing your registration...`;
+    }
+  }
 
   // 1. If in active onboarding flow, continue it
   if (state && state.flow === 'onboard') {
@@ -26,6 +40,11 @@ export async function handleMessage(phone, text) {
   // 2. Worker commands (existing workers)
   if (WORKER_COMMANDS.includes(upperText)) {
     return handleWorkerCommand(phone, upperText, state, conversations);
+  }
+
+  // 2.5. Investment commands
+  if (INVEST_COMMANDS.includes(upperText) || (state && state.flow === 'invest')) {
+    return handleInvest(phone, text, state, conversations);
   }
 
   // 3. Registration trigger

@@ -35,6 +35,9 @@ Thumbs.db
 whatsapp-bot/auth_state/
 *.session.json
 
+# Documentation (internal)
+docs/
+
 # Docker
 *.pid
 *.seed

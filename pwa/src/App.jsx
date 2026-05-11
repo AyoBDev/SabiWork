@@ -3,6 +3,8 @@ import { Routes, Route } from 'react-router-dom';
 import MapPage from './pages/MapPage';
 import PulsePage from './pages/PulsePage';
 import ProfilePage from './pages/ProfilePage';
+import LocationCapture from './pages/LocationCapture';
+import InvestPage from './pages/InvestPage';
 import BottomNav from './components/ui/BottomNav';
 import ChatSheet from './components/chat/ChatSheet';
 import OnboardPage from './components/agent/OnboardPage';
@@ -21,7 +23,9 @@ export default function App() {
         <Route path="/pulse" element={<PulsePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/onboard" element={<OnboardPage />} />
+        <Route path="/join/:phone" element={<LocationCapture />} />
         <Route path="/stats" element={<AgentStats />} />
+        <Route path="/invest/:roundId" element={<InvestPage />} />
       </Routes>
       <ChatSheet />
       {isAgent ? <AgentNav /> : <BottomNav />}
