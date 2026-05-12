@@ -1,5 +1,8 @@
 // backend/src/config.js
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+// Also try local .env in backend dir (for Railway where root .env doesn't exist)
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const config = {
   port: process.env.PORT || 3000,

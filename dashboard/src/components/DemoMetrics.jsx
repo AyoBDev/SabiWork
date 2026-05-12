@@ -1,30 +1,57 @@
+// dashboard/src/components/DemoMetrics.jsx
 'use client';
+
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import {
+  MessageSquare,
+  Wallet,
+  BarChart3,
+  Gem,
+  Link,
+  Zap
+} from 'lucide-react';
+
+const METRIC_ICONS = {
+  Messages: { icon: MessageSquare, color: 'text-pink-400' },
+  Payments: { icon: Wallet, color: 'text-yellow-400' },
+  Scores: { icon: BarChart3, color: 'text-cyan-400' },
+  'Value Moved': { icon: Gem, color: 'text-violet-400' },
+  'Squad Calls': { icon: Link, color: 'text-blue-400' },
+  'Avg Time': { icon: Zap, color: 'text-green-400' }
+};
 
 export default function DemoMetrics({ events }) {
   const metrics = computeMetrics(events);
 
   return (
-    <div className="bg-[#0d1117] rounded-xl border border-[#30363d] p-4">
-      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Live Metrics</h3>
-      <div className="grid grid-cols-2 gap-3">
-        <MetricCard label="Messages Processed" value={metrics.messages} icon="📨" />
-        <MetricCard label="Payments Triggered" value={metrics.payments} icon="💰" />
-        <MetricCard label="SabiScores Created" value={metrics.scores} icon="📊" />
-        <MetricCard label="Total Value Moved" value={`₦${metrics.totalValue.toLocaleString()}`} icon="💎" />
-        <MetricCard label="Squad API Calls" value={metrics.squadCalls} icon="🔗" />
-        <MetricCard label="Avg Response" value={`${metrics.avgTime}s`} icon="⚡" />
-      </div>
-    </div>
+    <Card className="border-border/50">
+      <CardHeader className="pb-2 px-4 pt-3">
+        <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">Live Metrics</CardTitle>
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        <div className="grid grid-cols-3 gap-2">
+          <MetricCard label="Messages" value={metrics.messages} />
+          <MetricCard label="Payments" value={metrics.payments} />
+          <MetricCard label="Scores" value={metrics.scores} />
+          <MetricCard label="Value Moved" value={`₦${metrics.totalValue.toLocaleString()}`} />
+          <MetricCard label="Squad Calls" value={metrics.squadCalls} />
+          <MetricCard label="Avg Time" value={`${metrics.avgTime}s`} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-function MetricCard({ label, value, icon }) {
+function MetricCard({ label, value }) {
+  const config = METRIC_ICONS[label];
+  const Icon = config.icon;
+
   return (
-    <div className="flex items-center gap-2 p-2 rounded-lg bg-[#161b22]">
-      <span className="text-lg">{icon}</span>
+    <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+      <Icon className={`w-4 h-4 ${config.color}`} />
       <div>
-        <p className="text-white font-bold text-lg font-mono">{value}</p>
-        <p className="text-[10px] text-gray-500">{label}</p>
+        <p className="text-foreground font-bold text-sm font-mono">{value}</p>
+        <p className="text-[9px] text-muted-foreground">{label}</p>
       </div>
     </div>
   );

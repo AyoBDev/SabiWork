@@ -25,8 +25,8 @@ export function createWSConnection(onEvent) {
       reconnectTimer = setTimeout(connect, 3000);
     };
 
-    ws.onerror = (err) => {
-      console.error('[WS] Error:', err);
+    ws.onerror = () => {
+      console.warn('[WS] Connection error, will reconnect...');
       ws.close();
     };
   }

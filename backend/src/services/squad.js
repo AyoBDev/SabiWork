@@ -96,9 +96,14 @@ class SquadService {
    * @returns {Object} { success, nip_ref } or throws on failure
    */
   async transferToBank({ amount, bankCode, accountNumber, accountName, transactionRef, remark }) {
+    // Squad requires merchant ID prefix on transaction references
+    const ref = transactionRef.startsWith(config.squadMerchantId)
+      ? transactionRef
+      : `${config.squadMerchantId}_${transactionRef}`;
+
     const body = {
-      transaction_ref: transactionRef,
-      amount: amount * 100, // Naira to kobo
+      transaction_reference: ref,
+      amount: (amount * 100).toString(), // Naira to kobo, string
       bank_code: bankCode,
       account_number: accountNumber,
       account_name: accountName,
@@ -143,15 +148,23 @@ class SquadService {
    * @param {string} params.email - User's email (generated if not available)
    * @returns {Object} { accountNumber, bankName, accountName }
    */
-  async createVirtualAccount({ customerId, firstName, lastName, phone, email }) {
+  async createVirtualAccount({ customerId, firstName, lastName, phone, email, dob, gender, bvn, address }) {
     const body = {
       customer_identifier: customerId,
       first_name: firstName,
       last_name: lastName,
       mobile_num: phone,
       email: email || `${customerId}@sabiwork.ng`,
+      dob: dob || '01/01/1990',
+      gender: gender || '1', // 1 = Male, 2 = Female
+      address: address || 'Lagos, Nigeria',
       beneficiary_account: config.squadMerchantId
     };
+
+    // BVN required for virtual account creation
+    if (bvn) {
+      body.bvn = bvn;
+    }
 
     const result = await this._request('POST', '/virtual-account', body);
     return {
@@ -164,7 +177,7 @@ class SquadService {
   /**
    * Verify a bank account number and get the account name
    * Used during worker onboarding to validate bank details before payouts
-   * @param {string} bankCode - Bank code (e.g., '090267')
+   * @param {string} bankCode - NIP bank code (6 chars, e.g., '000013' for GTBank)
    * @param {string} accountNumber - 10-digit account number
    * @returns {Object} { accountName, accountNumber, bankCode }
    */

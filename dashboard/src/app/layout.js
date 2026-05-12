@@ -12,7 +12,7 @@ export default function RootLayout({ children }) {
       <head>
         <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
       </head>
-      <body className="bg-dash-bg text-dash-text antialiased overflow-hidden h-screen">
+      <body className="bg-background text-foreground antialiased overflow-hidden h-screen">
         {children}
       </body>
     </html>

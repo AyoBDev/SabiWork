@@ -8,12 +8,12 @@ export function isTraderMessage(text) {
   return SALE_PATTERN.test(text) || text.toUpperCase().trim() === 'REPORT';
 }
 
-export async function handleTrader(phone, text, state, conversations) {
+export async function handleTrader(phone, text, state, conversations, pushName = '') {
   // Notify agent feed that a message arrived
   backendAPI.notifyEvent('message_parsed', {
-    actor: phone,
+    actor: pushName || phone,
     description: `WhatsApp: "${text}"`,
-    metadata: { channel: 'whatsapp', phone }
+    metadata: { channel: 'whatsapp', phone, pushName }
   });
 
   const upperText = text.toUpperCase().trim();

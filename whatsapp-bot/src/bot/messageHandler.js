@@ -17,7 +17,7 @@ const REGISTER_KEYWORDS = ['register', 'join', 'start', 'signup', 'hello', 'hi']
 const SEEKER_KEYWORDS = ['find work', 'job', 'apprentice', 'learn', 'pathway', 'APPLY'];
 const TRADER_KEYWORDS = ['sold', 'sale', 'REPORT'];
 
-export async function handleMessage(phone, text) {
+export async function handleMessage(phone, text, pushName = '') {
   cancelGhost();
 
   const state = conversations.get(phone);
@@ -58,12 +58,12 @@ export async function handleMessage(phone, text) {
 
   // 4. Trader message (sales pattern: "sold X bags of Y at Z")
   if (isTraderMessage(text)) {
-    return handleTrader(phone, text, state, conversations);
+    return handleTrader(phone, text, state, conversations, pushName);
   }
 
   // 5. Trader REPORT command
   if (upperText === 'REPORT') {
-    return handleTrader(phone, text, state, conversations);
+    return handleTrader(phone, text, state, conversations, pushName);
   }
 
   // 6. Seeker keywords

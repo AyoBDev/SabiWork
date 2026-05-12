@@ -8,18 +8,37 @@ const logger = pino({ level: 'silent' });
 
 let sock = null;
 
+// Use pairing code for headless deployment (Railway)
+// Set PAIRING_PHONE=234XXXXXXXXXX in env to use pairing code instead of QR
+const PAIRING_PHONE = process.env.PAIRING_PHONE || '';
+
 export async function startBot() {
   const { state, saveCreds } = await getAuthState();
+
+  const usePairingCode = !!PAIRING_PHONE && !state.creds.registered;
 
   sock = makeWASocket({
     auth: {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger)
     },
-    printQRInTerminal: true,
+    printQRInTerminal: !usePairingCode,
     logger,
-    browser: ['SabiWork', 'Chrome', '4.0.0']
+    browser: usePairingCode ? ['Chrome (Linux)', '', ''] : ['SabiWork', 'Chrome', '4.0.0']
   });
+
+  // Request pairing code for headless environments
+  if (usePairingCode) {
+    setTimeout(async () => {
+      try {
+        const code = await sock.requestPairingCode(PAIRING_PHONE);
+        console.log(`\n📱 PAIRING CODE: ${code}`);
+        console.log(`   Enter this code in WhatsApp > Linked Devices > Link with Phone Number\n`);
+      } catch (err) {
+        console.error('Failed to request pairing code:', err.message);
+      }
+    }, 3000);
+  }
 
   // Save credentials on update
   sock.ev.on('creds.update', saveCreds);
@@ -28,7 +47,7 @@ export async function startBot() {
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
 
-    if (qr) {
+    if (qr && !usePairingCode) {
       console.log('\n📱 Scan this QR code with WhatsApp:\n');
     }
 
@@ -54,6 +73,7 @@ export async function startBot() {
       if (!msg.message) continue;
 
       const phone = msg.key.remoteJid.replace('@s.whatsapp.net', '');
+      const pushName = msg.pushName || '';
       const text = msg.message.conversation
         || msg.message.extendedTextMessage?.text
         || '';
@@ -61,7 +81,7 @@ export async function startBot() {
       if (!text.trim()) continue;
 
       try {
-        const reply = await handleMessage(phone, text.trim());
+        const reply = await handleMessage(phone, text.trim(), pushName);
         if (reply) {
           await sock.sendMessage(msg.key.remoteJid, { text: reply });
         }

@@ -76,11 +76,11 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Start server
-server.listen(config.port, () => {
+// Start server — bind to 0.0.0.0 for Railway/container deployments
+server.listen(config.port, '0.0.0.0', () => {
   console.log(`SabiWork backend running on port ${config.port}`);
-  console.log(`WebSocket feed available at ws://localhost:${config.port}/dashboard/feed`);
-  console.log(`API index at http://localhost:${config.port}/api`);
+  console.log(`WebSocket feed available at ws://0.0.0.0:${config.port}/dashboard/feed`);
+  console.log(`API index at http://0.0.0.0:${config.port}/api`);
 });
 
 module.exports = { app, server };

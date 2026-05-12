@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "migrate": "knex migrate:latest --knexfile src/database/knexfile.js",
+    "migrate": "knex migrate:latest --knexfile src/database/knexfile.js --env ${NODE_ENV:-development}",
     "migrate:rollback": "knex migrate:rollback --knexfile src/database/knexfile.js",
     "seed": "node seed.js",
     "test": "node --test tests/**/*.test.js",
