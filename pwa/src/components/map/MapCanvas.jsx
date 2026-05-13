@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import useAppStore from '../../stores/appStore';
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.placeholder';
 
 const TRUST_COLORS = {
   emerging: '#4CAF50',   // green
@@ -28,15 +28,25 @@ export default function MapCanvas() {
   // Initialize map once
   useEffect(() => {
     if (mapRef.current || !mapContainer.current) return;
+    if (!import.meta.env.VITE_MAPBOX_TOKEN) {
+      console.warn('[Map] No VITE_MAPBOX_TOKEN set, skipping map init');
+      return;
+    }
 
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: mapCenter,
-      zoom: mapZoom,
-      attributionControl: false,
-      logoPosition: 'top-left'
-    });
+    let map;
+    try {
+      map = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: mapCenter,
+        zoom: mapZoom,
+        attributionControl: false,
+        logoPosition: 'top-left'
+      });
+    } catch (err) {
+      console.error('[Map] Failed to initialize:', err.message);
+      return;
+    }
 
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     map.addControl(
