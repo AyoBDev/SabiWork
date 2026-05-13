@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import MapCanvas from '../components/map/MapCanvas';
 import LayerToggle from '../components/map/LayerToggle';
+import LocationBar from '../components/map/LocationBar';
 import useAppStore from '../stores/appStore';
 import api from '../services/api';
 
@@ -24,8 +25,9 @@ export default function MapPage() {
   }, []);
 
   return (
-    <div className="absolute inset-0 pb-14">
+    <div className="absolute inset-0 pb-16">
       <MapCanvas />
+      <LocationBar />
       <LayerToggle />
     </div>
   );

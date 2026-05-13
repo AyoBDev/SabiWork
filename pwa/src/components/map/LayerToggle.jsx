@@ -2,29 +2,33 @@
 import useAppStore from '../../stores/appStore';
 
 const layers = [
-  { id: 'workers', label: 'Workers' },
-  { id: 'demand', label: 'Demand' },
-  { id: 'gaps', label: 'Gaps' }
+  { id: 'workers', label: 'Worker', emoji: '⚡' },
+  { id: 'jobs', label: 'Job', emoji: '💼' },
+  { id: 'demand', label: 'Demand', emoji: '🔥' }
 ];
 
 export default function LayerToggle() {
   const { activeLayer, setActiveLayer } = useAppStore();
 
   return (
-    <div className="absolute top-4 left-4 z-30 flex gap-1.5">
-      {layers.map((layer) => (
-        <button
-          key={layer.id}
-          onClick={() => setActiveLayer(layer.id)}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium shadow-md transition-all ${
-            activeLayer === layer.id
-              ? 'bg-sabi-green text-white'
-              : 'bg-white text-warm-muted border border-warm-border'
-          }`}
-        >
-          {layer.label}
-        </button>
-      ))}
+    <div className="absolute top-[88px] left-4 z-30 flex items-center gap-2">
+      {layers.map((layer) => {
+        const isActive = activeLayer === layer.id;
+        return (
+          <button
+            key={layer.id}
+            onClick={() => setActiveLayer(layer.id)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+              isActive
+                ? 'bg-sabi-green text-white shadow-md'
+                : 'bg-white text-gray-700 shadow-sm border border-gray-100'
+            }`}
+          >
+            <span className="text-base">{layer.emoji}</span>
+            {layer.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

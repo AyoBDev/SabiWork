@@ -131,39 +131,70 @@ function fallbackClassify(message) {
 }
 
 async function findNearbyWorkers(intent, buyerLat, buyerLng, radiusKm = 5) {
-  let query = knex('workers')
-    .where({ is_available: true })
-    .where('last_active_at', '>=', knex.raw("NOW() - INTERVAL '7 days'"));
+  try {
+    let query = knex('workers')
+      .where({ is_available: true });
 
-  if (intent.trade_category) {
-    query = query.where(function() {
-      this.where('primary_trade', intent.trade_category)
-        .orWhereRaw('? = ANY(secondary_trades)', [intent.trade_category]);
-    });
-  }
-
-  if (buyerLat && buyerLng) {
-    const distanceExpr = `(6371 * acos(LEAST(1.0, cos(radians(?)) * cos(radians(location_lat)) * cos(radians(location_lng) - radians(?)) + sin(radians(?)) * sin(radians(location_lat)))))`;
-    query = query.select(
-      '*',
-      knex.raw(`${distanceExpr} AS distance_km`, [buyerLat, buyerLng, buyerLat])
-    )
-    .whereRaw(`${distanceExpr} <= ?`, [buyerLat, buyerLng, buyerLat, radiusKm])
-    .orderByRaw('distance_km ASC, trust_score DESC');
-  } else {
-    if (intent.location) {
-      query = query.whereRaw('? = ANY(service_areas)', [intent.location]);
+    if (intent.trade_category) {
+      query = query.where(function() {
+        this.where('primary_trade', intent.trade_category)
+          .orWhereRaw('? = ANY(secondary_trades)', [intent.trade_category]);
+      });
     }
-    query = query.orderBy('trust_score', 'desc');
+
+    if (buyerLat && buyerLng) {
+      query = query.whereNotNull('location_lat').whereNotNull('location_lng');
+      const distanceExpr = `(6371 * acos(LEAST(1.0, cos(radians(?)) * cos(radians(location_lat)) * cos(radians(location_lng) - radians(?)) + sin(radians(?)) * sin(radians(location_lat)))))`;
+      query = query.select(
+        '*',
+        knex.raw(`${distanceExpr} AS distance_km`, [buyerLat, buyerLng, buyerLat])
+      )
+      .whereRaw(`${distanceExpr} <= ?`, [buyerLat, buyerLng, buyerLat, radiusKm])
+      .orderByRaw('distance_km ASC, trust_score DESC');
+    } else {
+      if (intent.location) {
+        query = query.whereRaw('LOWER(?) = ANY(service_areas)', [intent.location]);
+      }
+      query = query.orderBy('trust_score', 'desc');
+    }
+
+    const workers = await query.limit(10);
+
+    if (workers.length === 0 && buyerLat && buyerLng && radiusKm < 15) {
+      return findNearbyWorkers(intent, buyerLat, buyerLng, radiusKm * 2);
+    }
+
+    // If geo search found nothing even at max radius, fallback to service_areas
+    if (workers.length === 0 && intent.location) {
+      console.log('[Matching] Geo search empty, falling back to service_areas for:', intent.location);
+      const fallbackQuery = knex('workers')
+        .where({ is_available: true })
+        .whereRaw('LOWER(?) = ANY(service_areas)', [intent.location]);
+      if (intent.trade_category) {
+        fallbackQuery.where(function() {
+          this.where('primary_trade', intent.trade_category)
+            .orWhereRaw('? = ANY(secondary_trades)', [intent.trade_category]);
+        });
+      }
+      return fallbackQuery.orderBy('trust_score', 'desc').limit(10);
+    }
+
+    return workers;
+  } catch (err) {
+    console.error('[Matching] Query failed, using fallback:', err.message);
+    // Fallback: simple service_areas match without distance
+    const fallbackQuery = knex('workers').where({ is_available: true });
+    if (intent.trade_category) {
+      fallbackQuery.where(function() {
+        this.where('primary_trade', intent.trade_category)
+          .orWhereRaw('? = ANY(secondary_trades)', [intent.trade_category]);
+      });
+    }
+    if (intent.location) {
+      fallbackQuery.whereRaw('LOWER(?) = ANY(service_areas)', [intent.location]);
+    }
+    return fallbackQuery.orderBy('trust_score', 'desc').limit(10);
   }
-
-  const workers = await query.limit(10);
-
-  if (workers.length === 0 && buyerLat && buyerLng && radiusKm < 15) {
-    return findNearbyWorkers(intent, buyerLat, buyerLng, radiusKm * 2);
-  }
-
-  return workers;
 }
 
 async function rankWorkers(intent, candidates) {

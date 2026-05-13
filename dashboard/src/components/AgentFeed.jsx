@@ -6,7 +6,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Brain,
   Store,
   Wallet,
   Banknote,
@@ -61,7 +60,7 @@ export default function AgentFeed({ events }) {
     <Card className="h-full flex flex-col border-border/50">
       <CardHeader className="pb-2 px-4 pt-3 flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
-          <Brain className="w-5 h-5 text-primary" />
+          <img src="/logo.png" alt="SabiWork" className="w-5 h-5 rounded" />
           <CardTitle className="text-sm">SabiWork Agent</CardTitle>
         </div>
         <Badge variant="outline" className="text-green-400 border-green-400/30 bg-green-400/10 font-mono text-[10px]">

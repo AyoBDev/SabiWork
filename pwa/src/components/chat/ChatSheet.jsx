@@ -46,11 +46,7 @@ export default function ChatSheet() {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-warm-border/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sabi-green to-sabi-green-light flex items-center justify-center shadow-md">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" />
-              </svg>
-            </div>
+            <img src="/logo.png" alt="SabiWork" className="w-10 h-10 rounded-full shadow-md" />
             <div>
               <p className="text-base font-bold text-warm-text">SabiWork AI</p>
               <div className="flex items-center gap-1.5">
@@ -95,7 +91,7 @@ export default function ChatSheet() {
         </div>
 
         {/* Input */}
-        <div className="pb-14">
+        <div className="pb-16">
           <ChatInput />
         </div>
       </div>

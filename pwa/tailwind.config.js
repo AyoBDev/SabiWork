@@ -4,8 +4,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        'sabi-green': '#1B7A3D',
-        'sabi-green-light': '#2DA055',
+        'sabi-green': '#7CB342',
+        'sabi-green-dark': '#1B7A3D',
+        'sabi-green-light': '#8BC34A',
         'work-orange': '#E8630A',
         'work-orange-light': '#FF8534',
         'cash-gold': '#F9A825',

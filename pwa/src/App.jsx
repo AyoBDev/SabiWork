@@ -1,8 +1,10 @@
 // pwa/src/App.jsx
 import { Routes, Route } from 'react-router-dom';
 import MapPage from './pages/MapPage';
-import PulsePage from './pages/PulsePage';
+import JobsPage from './pages/JobsPage';
+import WalletPage from './pages/WalletPage';
 import ProfilePage from './pages/ProfilePage';
+import PulsePage from './pages/PulsePage';
 import LocationCapture from './pages/LocationCapture';
 import InvestPage from './pages/InvestPage';
 import BottomNav from './components/ui/BottomNav';
@@ -18,11 +20,13 @@ export default function App() {
   const isAgent = user?.role === 'agent';
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-warm-bg relative">
+    <div className="h-screen w-screen overflow-hidden bg-white relative">
       <Routes>
         <Route path="/" element={<MapPage />} />
-        <Route path="/pulse" element={<PulsePage />} />
+        <Route path="/jobs" element={<JobsPage />} />
+        <Route path="/wallet" element={<WalletPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/pulse" element={<PulsePage />} />
         <Route path="/onboard" element={<OnboardPage />} />
         <Route path="/join/:phone" element={<LocationCapture />} />
         <Route path="/stats" element={<AgentStats />} />

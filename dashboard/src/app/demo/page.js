@@ -162,9 +162,7 @@ export default function DemoPage() {
         {/* Header row */}
         <div className="flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">S</span>
-            </div>
+            <img src="/logo.png" alt="SabiWork" className="w-8 h-8 rounded-lg" />
             <div>
               <h1 className="text-sm font-bold text-foreground">SabiWork</h1>
               <p className="text-[10px] text-muted-foreground">Economic Intelligence Platform</p>

@@ -3,7 +3,11 @@ import './globals.css';
 
 export const metadata = {
   title: 'SabiWork — Economic Intelligence',
-  description: 'Real-time economic intelligence dashboard'
+  description: 'Real-time economic intelligence dashboard',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/icon-192.png'
+  }
 };
 
 export default function RootLayout({ children }) {
