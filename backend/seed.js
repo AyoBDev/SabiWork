@@ -52,7 +52,7 @@ async function seed() {
       is_available: w.is_available,
       onboarding_channel: w.onboarding_channel,
       gps_verified: w.gps_verified,
-      last_active_at: randomDateWithinDays(3),
+      last_active_at: new Date(), // Always "just now" so workers appear in queries
       created_at: dateBetweenDaysAgo(90, 60)
     }).returning('id');
     workerIds.push(inserted.id || inserted);

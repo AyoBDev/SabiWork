@@ -133,7 +133,7 @@ function fallbackClassify(message) {
 async function findNearbyWorkers(intent, buyerLat, buyerLng, radiusKm = 5) {
   let query = knex('workers')
     .where({ is_available: true })
-    .where('last_active_at', '>=', knex.raw("NOW() - INTERVAL '24 hours'"));
+    .where('last_active_at', '>=', knex.raw("NOW() - INTERVAL '7 days'"));
 
   if (intent.trade_category) {
     query = query.where(function() {

@@ -9,7 +9,8 @@ COPY src/ ./src/
 COPY shared/ ./shared/
 COPY migrations/ ./migrations/
 COPY seed.js ./seed.js
+COPY seed-data/ ./seed-data/
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx knex migrate:latest --knexfile src/database/knexfile.js && node src/index.js"]
+CMD ["sh", "-c", "npx knex migrate:latest --knexfile src/database/knexfile.js && node seed.js && node src/index.js"]
