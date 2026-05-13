@@ -226,16 +226,16 @@ export default function DemoPage() {
       {/* Divider */}
       <div className="w-px bg-border/30" />
 
-      {/* Right Panel: Agent Feed + Metrics */}
+      {/* Right Panel: Metrics + Agent Feed */}
       <div className="w-[45%] flex flex-col p-4 gap-3">
-        {/* Agent Feed (takes most space) */}
-        <div className="flex-1 min-h-0">
-          <AgentFeed events={events} />
-        </div>
-
-        {/* Metrics (fixed bottom) */}
+        {/* Metrics (top, bigger) */}
         <div className="shrink-0">
           <DemoMetrics events={events} />
+        </div>
+
+        {/* Agent Feed (takes remaining space) */}
+        <div className="flex-1 min-h-0">
+          <AgentFeed events={events} />
         </div>
       </div>
     </div>

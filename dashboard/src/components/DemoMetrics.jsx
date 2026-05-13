@@ -25,11 +25,11 @@ export default function DemoMetrics({ events }) {
 
   return (
     <Card className="border-border/50">
-      <CardHeader className="pb-2 px-4 pt-3">
-        <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground">Live Metrics</CardTitle>
+      <CardHeader className="pb-3 px-5 pt-4">
+        <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Live Metrics</CardTitle>
       </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <div className="grid grid-cols-3 gap-2">
+      <CardContent className="px-5 pb-5">
+        <div className="grid grid-cols-3 gap-3">
           <MetricCard label="Messages" value={metrics.messages} />
           <MetricCard label="Payments" value={metrics.payments} />
           <MetricCard label="Scores" value={metrics.scores} />
@@ -47,11 +47,11 @@ function MetricCard({ label, value }) {
   const Icon = config.icon;
 
   return (
-    <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-      <Icon className={`w-4 h-4 ${config.color}`} />
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+      <Icon className={`w-5 h-5 ${config.color}`} />
       <div>
-        <p className="text-foreground font-bold text-sm font-mono">{value}</p>
-        <p className="text-[9px] text-muted-foreground">{label}</p>
+        <p className="text-foreground font-bold text-lg font-mono">{value}</p>
+        <p className="text-[10px] text-muted-foreground">{label}</p>
       </div>
     </div>
   );

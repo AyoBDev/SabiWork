@@ -11,8 +11,10 @@ export function useChat() {
     setLoading(true);
 
     try {
+      const [lng, lat] = useAppStore.getState().mapCenter;
       const response = await api.sendChat(text, {
-        location: useAppStore.getState().mapCenter
+        user_lat: lat,
+        user_lng: lng
       });
 
       // Process AI response — may contain multiple messages
@@ -21,7 +23,7 @@ export function useChat() {
       for (const msg of messages) {
         addMessage({
           type: msg.type || 'text',
-          text: msg.text,
+          text: msg.text || msg.message,
           data: msg.data,
           sender: 'ai'
         });
