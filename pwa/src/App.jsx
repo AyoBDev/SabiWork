@@ -7,6 +7,7 @@ import LocationCapture from './pages/LocationCapture';
 import InvestPage from './pages/InvestPage';
 import BottomNav from './components/ui/BottomNav';
 import ChatSheet from './components/chat/ChatSheet';
+import AIButton from './components/chat/AIButton';
 import OnboardPage from './components/agent/OnboardPage';
 import AgentStats from './components/agent/AgentStats';
 import AgentNav from './components/agent/AgentNav';
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/invest/:roundId" element={<InvestPage />} />
       </Routes>
       <ChatSheet />
+      <AIButton />
       {isAgent ? <AgentNav /> : <BottomNav />}
     </div>
   );
