@@ -12,4 +12,4 @@ COPY seed.js ./seed.js
 
 EXPOSE 3000
 
-CMD ["node", "src/index.js"]
+CMD ["sh", "-c", "npx knex migrate:latest --knexfile src/database/knexfile.js && node src/index.js"]
