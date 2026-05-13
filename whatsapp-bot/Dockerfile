@@ -4,5 +4,5 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-VOLUME ["/app/auth_state"]
+RUN mkdir -p /data/auth_state
 CMD ["npm", "start"]

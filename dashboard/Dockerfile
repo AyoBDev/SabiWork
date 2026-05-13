@@ -11,9 +11,8 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
-ENV PORT=3001
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
-EXPOSE 3001
+RUN mkdir -p ./public
+COPY --from=build /app/public/. ./public/
 CMD ["node", "server.js"]
