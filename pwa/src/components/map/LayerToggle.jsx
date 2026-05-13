@@ -1,10 +1,11 @@
 // pwa/src/components/map/LayerToggle.jsx
+import { Zap, Briefcase, Flame } from 'lucide-react';
 import useAppStore from '../../stores/appStore';
 
 const layers = [
-  { id: 'workers', label: 'Worker', emoji: '⚡' },
-  { id: 'jobs', label: 'Job', emoji: '💼' },
-  { id: 'demand', label: 'Demand', emoji: '🔥' }
+  { id: 'workers', label: 'Worker', Icon: Zap },
+  { id: 'jobs', label: 'Job', Icon: Briefcase },
+  { id: 'demand', label: 'Demand', Icon: Flame }
 ];
 
 export default function LayerToggle() {
@@ -24,7 +25,7 @@ export default function LayerToggle() {
                 : 'bg-white text-gray-700 shadow-sm border border-gray-100'
             }`}
           >
-            <span className="text-base">{layer.emoji}</span>
+            <layer.Icon className="w-4 h-4" />
             {layer.label}
           </button>
         );

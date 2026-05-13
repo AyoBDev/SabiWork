@@ -1,5 +1,6 @@
 // pwa/src/pages/JobsPage.jsx
 import { useState } from 'react';
+import { Briefcase, Coins, Star } from 'lucide-react';
 
 const MOCK_JOBS = [
   {
@@ -94,7 +95,7 @@ export default function JobsPage() {
           </div>
           <div className="flex items-center gap-2 bg-white/15 rounded-xl px-3 py-2 flex-1">
             <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-              <span className="text-sm">💰</span>
+              <Coins className="w-4 h-4 text-white" />
             </div>
             <div>
               <p className="text-white font-bold text-base">₦87k</p>
@@ -103,7 +104,7 @@ export default function JobsPage() {
           </div>
           <div className="flex items-center gap-2 bg-white/15 rounded-xl px-3 py-2 flex-1">
             <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-              <span className="text-sm">⭐</span>
+              <Star className="w-4 h-4 text-white" fill="white" />
             </div>
             <div>
               <p className="text-white font-bold text-base">4.8</p>

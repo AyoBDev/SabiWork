@@ -1,4 +1,5 @@
 // pwa/src/pages/WalletPage.jsx
+import { Send, ArrowUp, PlusCircle, Clock, Bookmark, Lock, Bell, ArrowDown, Home } from 'lucide-react';
 
 const MOCK_TRANSACTIONS = [
   {
@@ -74,10 +75,7 @@ export default function WalletPage() {
             <p className="text-sm text-gray-500 mt-0.5">Manage Payments, escrow and job Transactions</p>
           </div>
           <button className="w-10 h-10 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
+            <Bell className="w-[18px] h-[18px] text-gray-700" />
           </button>
         </div>
       </div>
@@ -159,7 +157,9 @@ export default function WalletPage() {
       <div className="px-5 mt-6">
         <h2 className="text-base font-bold text-gray-900 mb-3">Savings Pots</h2>
         <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-sabi-green/10 flex items-center justify-center text-lg">🏠</div>
+          <div className="w-10 h-10 rounded-lg bg-sabi-green/10 flex items-center justify-center">
+            <Home className="w-5 h-5 text-sabi-green" />
+          </div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-gray-900">Home Maintenance</p>
             <p className="text-xs text-gray-500">₦22,000 of ₦80,000</p>
@@ -195,9 +195,9 @@ function TransactionRow({ tx }) {
         {tx.hasAvatar ? (
           <span className="text-sm font-bold text-gray-500">{tx.initial}</span>
         ) : tx.icon === 'download' ? (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7CB342" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+          <ArrowDown className="w-4 h-4 text-sabi-green" />
         ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7CB342" strokeWidth="2" strokeLinecap="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+          <ArrowUp className="w-4 h-4 text-sabi-green" />
         )}
       </div>
 
@@ -219,18 +219,13 @@ function TransactionRow({ tx }) {
 }
 
 function ActionIcon({ type }) {
+  const iconClass = "w-5 h-5 text-gray-700";
   switch (type) {
-    case 'send':
-      return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" /></svg>;
-    case 'withdraw':
-      return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.8" strokeLinecap="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>;
-    case 'add':
-      return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>;
-    case 'history':
-      return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>;
-    case 'savings':
-      return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.8" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>;
-    default:
-      return null;
+    case 'send': return <Send className={iconClass} />;
+    case 'withdraw': return <ArrowUp className={iconClass} />;
+    case 'add': return <PlusCircle className={iconClass} />;
+    case 'history': return <Clock className={iconClass} />;
+    case 'savings': return <Bookmark className={iconClass} />;
+    default: return null;
   }
 }

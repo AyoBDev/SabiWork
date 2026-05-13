@@ -1,4 +1,5 @@
 // pwa/src/pages/ProfilePage.jsx
+import { Star, ChevronRight, Pencil } from 'lucide-react';
 
 const MENU_ITEMS = [
   { label: 'Personal Info' },
@@ -26,10 +27,7 @@ export default function ProfilePage() {
           </div>
           {/* Edit badge */}
           <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-sabi-green flex items-center justify-center border-2 border-white">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
+            <Pencil className="w-3 h-3 text-white" />
           </button>
         </div>
 
@@ -39,9 +37,7 @@ export default function ProfilePage() {
         {/* Badges */}
         <div className="flex items-center gap-3 mt-3">
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-100">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="#F9A825">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            </svg>
+            <Star className="w-3.5 h-3.5 text-yellow-500" fill="#F9A825" />
             <span className="text-sm font-medium text-gray-700">4.7 Rating</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-100">
@@ -84,24 +80,18 @@ export default function ProfilePage() {
             className="w-full flex items-center justify-between px-4 py-4 bg-gray-50 rounded-xl"
           >
             <span className="text-sm font-medium text-gray-800">{item.label}</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </button>
         ))}
 
         {/* Danger actions */}
         <button className="w-full flex items-center justify-between px-4 py-4 bg-red-50 rounded-xl mt-4">
           <span className="text-sm font-medium text-red-400">Deactivate Account</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <ChevronRight className="w-4 h-4 text-red-400" />
         </button>
         <button className="w-full flex items-center justify-between px-4 py-4 bg-red-50 rounded-xl">
           <span className="text-sm font-medium text-red-500">Log Out</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <ChevronRight className="w-4 h-4 text-red-500" />
         </button>
       </div>
 
