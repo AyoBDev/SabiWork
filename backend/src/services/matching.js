@@ -143,17 +143,12 @@ async function findNearbyWorkers(intent, buyerLat, buyerLng, radiusKm = 5) {
   }
 
   if (buyerLat && buyerLng) {
+    const distanceExpr = `(6371 * acos(LEAST(1.0, cos(radians(?)) * cos(radians(location_lat)) * cos(radians(location_lng) - radians(?)) + sin(radians(?)) * sin(radians(location_lat)))))`;
     query = query.select(
       '*',
-      knex.raw(`
-        (6371 * acos(
-          LEAST(1.0, cos(radians(?)) * cos(radians(location_lat)) *
-          cos(radians(location_lng) - radians(?)) +
-          sin(radians(?)) * sin(radians(location_lat)))
-        )) AS distance_km
-      `, [buyerLat, buyerLng, buyerLat])
+      knex.raw(`${distanceExpr} AS distance_km`, [buyerLat, buyerLng, buyerLat])
     )
-    .havingRaw('(6371 * acos(LEAST(1.0, cos(radians(?)) * cos(radians(location_lat)) * cos(radians(location_lng) - radians(?)) + sin(radians(?)) * sin(radians(location_lat))))) <= ?', [buyerLat, buyerLng, buyerLat, radiusKm])
+    .whereRaw(`${distanceExpr} <= ?`, [buyerLat, buyerLng, buyerLat, radiusKm])
     .orderByRaw('distance_km ASC, trust_score DESC');
   } else {
     if (intent.location) {

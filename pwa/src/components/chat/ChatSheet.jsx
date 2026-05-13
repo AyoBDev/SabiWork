@@ -95,7 +95,9 @@ export default function ChatSheet() {
         </div>
 
         {/* Input */}
-        <ChatInput />
+        <div className="pb-14">
+          <ChatInput />
+        </div>
       </div>
     </div>
   );
