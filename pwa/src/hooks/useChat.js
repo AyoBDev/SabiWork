@@ -3,7 +3,9 @@ import useAppStore from '../stores/appStore';
 import api from '../services/api';
 
 export function useChat() {
-  const { addMessage, setLoading, setActiveJob } = useAppStore();
+  const addMessage = useAppStore((s) => s.addMessage);
+  const setLoading = useAppStore((s) => s.setLoading);
+  const setActiveJob = useAppStore((s) => s.setActiveJob);
 
   async function send(text) {
     // Add user message
@@ -34,9 +36,10 @@ export function useChat() {
         setActiveJob(response.job);
       }
     } catch (err) {
+      console.error('[Chat] Error:', err);
       addMessage({
         type: 'text',
-        text: 'Sorry, something went wrong. Try again?',
+        text: `Something went wrong: ${err.message}. Check your connection and try again.`,
         sender: 'ai'
       });
     } finally {
