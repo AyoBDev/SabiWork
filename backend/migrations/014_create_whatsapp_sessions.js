@@ -1,10 +1,12 @@
 // backend/migrations/014_create_whatsapp_sessions.js
 exports.up = function(knex) {
-  return knex.schema.createTable('whatsapp_sessions', (table) => {
-    table.string('key').primary();
-    table.jsonb('data').notNullable();
-    table.timestamp('updated_at').defaultTo(knex.fn.now());
-  });
+  return knex.raw(`
+    CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+      key VARCHAR(255) PRIMARY KEY,
+      data JSONB NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 };
 
 exports.down = function(knex) {

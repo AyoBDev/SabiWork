@@ -7,61 +7,60 @@ import { handleMessage } from './messageHandler.js';
 const logger = pino({ level: 'silent' });
 
 let sock = null;
-
-// Use pairing code for headless deployment (Railway)
-// Set PAIRING_PHONE=234XXXXXXXXXX in env to use pairing code instead of QR
-const PAIRING_PHONE = process.env.PAIRING_PHONE || '';
+let reconnectAttempts = 0;
+const MAX_RECONNECTS = 5;
 
 export async function startBot() {
   const { state, saveCreds } = await getAuthState();
 
-  const usePairingCode = !!PAIRING_PHONE && !state.creds.registered;
+  // If no registered creds, wait — pair locally using pair-whatsapp.js
+  if (!state.creds.registered) {
+    console.log('[WhatsApp] No session found in database.');
+    console.log('[WhatsApp] Run pair-whatsapp.js locally to pair and push session to DB.');
+    console.log('[WhatsApp] Will retry in 30s...');
+    setTimeout(() => startBot(), 30000);
+    return;
+  }
+
+  console.log('[WhatsApp] Found stored session, connecting...');
 
   sock = makeWASocket({
     auth: {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger)
     },
-    printQRInTerminal: !usePairingCode,
+    printQRInTerminal: false,
     logger,
-    browser: usePairingCode ? ['Chrome (Linux)', '', ''] : ['SabiWork', 'Chrome', '4.0.0']
+    browser: ['SabiWork', 'Chrome', '4.0.0']
   });
-
-  // Request pairing code for headless environments
-  if (usePairingCode) {
-    setTimeout(async () => {
-      try {
-        const code = await sock.requestPairingCode(PAIRING_PHONE);
-        console.log(`\n📱 PAIRING CODE: ${code}`);
-        console.log(`   Enter this code in WhatsApp > Linked Devices > Link with Phone Number\n`);
-      } catch (err) {
-        console.error('Failed to request pairing code:', err.message);
-      }
-    }, 3000);
-  }
 
   // Save credentials on update
   sock.ev.on('creds.update', saveCreds);
 
   // Handle connection updates
   sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    if (qr && !usePairingCode) {
-      console.log('\n📱 Scan this QR code with WhatsApp:\n');
-    }
+    const { connection, lastDisconnect } = update;
 
     if (connection === 'close') {
       const reason = lastDisconnect?.error?.output?.statusCode;
-      if (reason !== DisconnectReason.loggedOut) {
-        console.log('Connection closed, reconnecting...');
-        startBot();
+      if (reason === DisconnectReason.loggedOut) {
+        console.log('[WhatsApp] Logged out. Re-pair using pair-whatsapp.js locally.');
+        return;
+      }
+
+      if (reconnectAttempts < MAX_RECONNECTS) {
+        reconnectAttempts++;
+        console.log(`[WhatsApp] Connection closed, reconnecting (${reconnectAttempts}/${MAX_RECONNECTS})...`);
+        setTimeout(() => startBot(), 5000);
       } else {
-        console.log('Logged out. Delete auth_state folder and restart.');
+        console.log('[WhatsApp] Max reconnect attempts reached. Will retry in 60s.');
+        reconnectAttempts = 0;
+        setTimeout(() => startBot(), 60000);
       }
     }
 
     if (connection === 'open') {
+      reconnectAttempts = 0;
       console.log('✅ WhatsApp bot connected!');
     }
   });
@@ -71,6 +70,7 @@ export async function startBot() {
     for (const msg of messages) {
       if (msg.key.fromMe) continue;
       if (!msg.message) continue;
+      if (msg.key.remoteJid === 'status@broadcast') continue;
 
       const phone = msg.key.remoteJid.replace('@s.whatsapp.net', '');
       const pushName = msg.pushName || '';
@@ -88,7 +88,7 @@ export async function startBot() {
       } catch (err) {
         console.error(`Error handling message from ${phone}:`, err);
         await sock.sendMessage(msg.key.remoteJid, {
-          text: '⚠️ Something went wrong. Try again shortly.'
+          text: 'Something went wrong. Try again shortly.'
         });
       }
     }
