@@ -3,16 +3,27 @@
 import useAppStore from '../stores/appStore';
 import api from '../services/api';
 
+const KNOWN_TRADES = ['plumber', 'plumbing', 'electrician', 'electrical', 'carpenter', 'carpentry', 'cleaner', 'cleaning', 'tailor', 'tailoring', 'hairdresser', 'hairdressing', 'painter', 'painting', 'caterer', 'catering', 'welder', 'welding', 'tiler', 'tiling'];
+
+const TRADE_MAP = {
+  plumber: 'plumbing', plumbing: 'plumbing',
+  electrician: 'electrical', electrical: 'electrical',
+  carpenter: 'carpentry', carpentry: 'carpentry',
+  cleaner: 'cleaning', cleaning: 'cleaning',
+  tailor: 'tailoring', tailoring: 'tailoring',
+  hairdresser: 'hairdressing', hairdressing: 'hairdressing',
+  painter: 'painting', painting: 'painting',
+  caterer: 'catering', catering: 'catering',
+  welder: 'welding', welding: 'welding',
+  tiler: 'tiling', tiling: 'tiling'
+};
+
 const INTENTS = [
   {
     id: 'find_worker',
     patterns: [
-      /find\s+(?:me\s+)?(?:the\s+)?(?:a\s+)?(?:cheapest|closest|best|nearest|most affordable)?\s*(\w+)/i,
-      /look\s+for\s+(?:a\s+)?(?:the\s+)?(?:cheapest|closest|best|nearest)?\s*(\w+)/i,
-      /i\s+need\s+(?:a\s+)?(?:the\s+)?(?:cheapest|closest|best|nearest)?\s*(\w+)/i,
-      /get\s+me\s+(?:a\s+)?(?:the\s+)?(?:cheapest|closest|best|nearest)?\s*(\w+)/i
-    ],
-    trades: ['plumber', 'electrician', 'carpenter', 'cleaner', 'tailor', 'hairdresser', 'painter', 'caterer', 'welder', 'tiler']
+      /find\s+/i, /look\s+for/i, /i\s+need/i, /get\s+me/i, /search\s+/i, /who\s+can/i, /any\s+\w+\s+near/i
+    ]
   },
   {
     id: 'log_sale',
@@ -32,25 +43,39 @@ const INTENTS = [
   }
 ];
 
+function extractTrade(text) {
+  const lower = text.toLowerCase();
+  for (const trade of KNOWN_TRADES) {
+    if (lower.includes(trade)) {
+      return TRADE_MAP[trade] || trade;
+    }
+  }
+  // Try partial match (e.g. "plumb" matches "plumber")
+  const words = lower.split(/\s+/);
+  for (const word of words) {
+    const cleaned = word.replace(/s$/, '');
+    for (const trade of KNOWN_TRADES) {
+      if (trade.startsWith(cleaned) && cleaned.length >= 3) {
+        return TRADE_MAP[trade] || trade;
+      }
+    }
+  }
+  return null;
+}
+
 function detectIntent(text) {
   for (const intent of INTENTS) {
     for (const pattern of intent.patterns) {
       const match = text.match(pattern);
       if (match) {
-        // For find_worker, extract the trade from the last captured group
         if (intent.id === 'find_worker') {
-          const captured = match[match.length - 1] || '';
-          const possibleTrade = captured.toLowerCase().replace(/s$/, ''); // remove trailing 's'
-          const trade = intent.trades.find(t =>
-            t.startsWith(possibleTrade) ||
-            possibleTrade.startsWith(t.slice(0, -2)) ||
-            t.includes(possibleTrade)
-          );
-          if (trade || possibleTrade.length > 2) {
-            return { intent: intent.id, trade: trade || possibleTrade, raw: text };
+          const trade = extractTrade(text);
+          if (trade) {
+            return { intent: intent.id, trade, raw: text };
           }
+          // If no trade found but the pattern matched, still treat as find_worker with generic
+          return { intent: intent.id, trade: null, raw: text };
         }
-        // For log_sale, extract amount info
         if (intent.id === 'log_sale') {
           const amountMatch = text.match(/(\d[\d,]*)/);
           const amount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : null;
@@ -59,6 +84,11 @@ function detectIntent(text) {
         return { intent: intent.id, raw: text };
       }
     }
+  }
+  // Final check: if message contains a trade name, it's probably a find request
+  const trade = extractTrade(text);
+  if (trade) {
+    return { intent: 'find_worker', trade, raw: text };
   }
   return { intent: 'general', raw: text };
 }
@@ -106,7 +136,8 @@ export function useAgentChat() {
   }
 
   async function handleFindWorker(parsed) {
-    const trade = parsed.trade || 'plumber';
+    const trade = parsed.trade; // e.g. 'plumbing', 'electrical', etc.
+    const tradeName = trade ? trade.replace(/ing$/, '').replace(/al$/, '') + 'er' : 'worker'; // display name
     const wantsCheapest = /cheap|affordable|budget|low.?price|lowest/i.test(parsed.raw);
     const wantsClosest = /close|near|closest|nearby/i.test(parsed.raw);
     const wantsBest = /best|top|highest.?rat/i.test(parsed.raw);
@@ -120,26 +151,30 @@ export function useAgentChat() {
     if (wantsBest) criteria.push('highest rating');
     if (criteria.length === 0) criteria.push('best match');
 
-    await addAgentStep(`Looking for ${trade}s — optimizing for ${criteria.join(' & ')}...`, 'searching');
+    const searchLabel = trade || 'workers';
+    await addAgentStep(`Looking for ${searchLabel} — optimizing for ${criteria.join(' & ')}...`, 'searching');
 
     try {
       const data = await api.getWorkers({ available: true });
       const workers = data.workers || data;
 
-      // Filter by trade
-      const filtered = workers.filter(w =>
-        w.primary_trade?.toLowerCase().includes(trade.slice(0, -1)) ||
-        w.primary_trade?.toLowerCase() === trade
-      );
+      // Filter by trade (match against primary_trade field which stores e.g. 'plumbing', 'electrical')
+      let filtered = [];
+      if (trade) {
+        filtered = workers.filter(w => {
+          const wt = w.primary_trade?.toLowerCase() || '';
+          return wt === trade || wt.includes(trade) || trade.includes(wt);
+        });
+      }
 
-      const results = filtered.length > 0 ? filtered : workers.slice(0, 6);
+      const results = filtered.length > 0 ? filtered : (trade ? [] : workers.slice(0, 6));
 
       if (results.length === 0) {
-        await addAgentResult(`No ${trade}s found nearby. Try a different trade or widen your search area.`);
+        await addAgentResult(`No ${searchLabel} found nearby. Try a different trade or widen your search area.`);
         return;
       }
 
-      await addAgentStep(`Found ${results.length} ${trade}${results.length > 1 ? 's' : ''}. Evaluating each one...`, 'success');
+      await addAgentStep(`Found ${results.length} ${searchLabel}${results.length > 1 && !searchLabel.endsWith('s') ? 's' : ''}. Evaluating each one...`, 'success');
 
       // Get user's position from map center
       const [userLng, userLat] = useAppStore.getState().mapCenter;
