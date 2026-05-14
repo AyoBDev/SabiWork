@@ -26,9 +26,7 @@ export default function PulsePage() {
   if (role === 'trader') {
     return (
       <div className="h-full pb-14 overflow-y-auto">
-        <div className="p-4">
-          <TraderPulse user={demoUser} />
-        </div>
+        <TraderPulse user={demoUser} />
       </div>
     );
   }

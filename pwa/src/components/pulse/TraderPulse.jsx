@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import useAppStore from '../../stores/appStore';
+import { useAgentChat } from '../../hooks/useAgentChat';
 
 const DEMO_ITEMS = [
   { id: 1, name: 'Tomatoes (basket)', price: 1200, unit: 'basket', stock: 8, maxStock: 50, demand: 'Selling fast', img: '/items/tomatoes.png' },
@@ -17,6 +18,8 @@ function getStockStatus(stock, maxStock) {
 }
 
 export default function TraderPulse({ user }) {
+  const setChatOpen = useAppStore((s) => s.setChatOpen);
+  const { send } = useAgentChat();
   const [items] = useState(DEMO_ITEMS);
   const [showLogSale, setShowLogSale] = useState(false);
 
@@ -24,11 +27,18 @@ export default function TraderPulse({ user }) {
   const lowStockItems = items.filter(i => getStockStatus(i.stock, i.maxStock).label !== 'Good');
   const lowStockNames = lowStockItems.slice(0, 3).map(i => i.name.split(' (')[0]);
 
+  function handleLogSaleSubmit(itemName, quantity, amount) {
+    const message = `sold ${quantity} ${itemName} for ${amount}`;
+    setChatOpen(true);
+    send(message);
+    setShowLogSale(false);
+  }
+
   return (
-    <div className="-m-4 -mt-[60px]">
+    <div>
       {/* Green gradient header */}
-      <div className="bg-gradient-to-br from-sabi-green to-green-700 px-5 pb-5 rounded-b-3xl" style={{ paddingTop: 'max(3.5rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-gradient-to-br from-sabi-green to-green-700 px-5 pt-16 pb-6 rounded-b-3xl">
+        <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-xl font-bold text-white">Hello, {user?.name?.split(' ')[0] || 'Trader'}</h1>
             <p className="text-sm text-white/80">Track your stock levels and restock alerts</p>
@@ -91,7 +101,7 @@ export default function TraderPulse({ user }) {
       )}
 
       {/* Sale Items */}
-      <div className="mx-4 mt-4 bg-white rounded-xl border border-warm-border p-4 pb-20">
+      <div className="mx-4 mt-4 bg-white rounded-xl border border-warm-border p-4 pb-6">
         <h3 className="text-base font-bold text-warm-text mb-4">Sale Items</h3>
         <div className="divide-y divide-warm-border/50">
           {items.map((item) => (
@@ -101,7 +111,7 @@ export default function TraderPulse({ user }) {
       </div>
 
       {/* Log Sale Sheet */}
-      <LogSaleSheet open={showLogSale} onClose={() => setShowLogSale(false)} items={items} />
+      <LogSaleSheet open={showLogSale} onClose={() => setShowLogSale(false)} items={items} onSubmit={handleLogSaleSubmit} />
     </div>
   );
 }
@@ -113,7 +123,6 @@ function SaleItem({ item }) {
   return (
     <div className="py-3.5 first:pt-0 last:pb-0">
       <div className="flex items-center gap-3">
-        {/* Product image */}
         <div className="w-14 h-14 rounded-xl bg-warm-bg flex items-center justify-center overflow-hidden shrink-0">
           <img
             src={item.img}
@@ -123,7 +132,6 @@ function SaleItem({ item }) {
           />
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <p className="text-sm font-semibold text-warm-text">{item.name}</p>
@@ -141,7 +149,6 @@ function SaleItem({ item }) {
         </div>
       </div>
 
-      {/* Stock bar */}
       <div className="mt-2 ml-[68px]">
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
@@ -154,34 +161,22 @@ function SaleItem({ item }) {
   );
 }
 
-function LogSaleSheet({ open, onClose, items }) {
+function LogSaleSheet({ open, onClose, items, onSubmit }) {
   const [item, setItem] = useState('');
   const [quantity, setQuantity] = useState('');
   const [amount, setAmount] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   function handleSubmit(e) {
     e.preventDefault();
     if (!item || !quantity || !amount) return;
-
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        setItem('');
-        setQuantity('');
-        setAmount('');
-        onClose();
-      }, 1500);
-    }, 800);
+    onSubmit(item, quantity, amount);
+    setItem('');
+    setQuantity('');
+    setAmount('');
   }
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={`fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
           open ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -189,19 +184,16 @@ function LogSaleSheet({ open, onClose, items }) {
         onClick={onClose}
       />
 
-      {/* Sheet */}
       <div
         className={`fixed inset-x-0 bottom-0 z-[201] bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
         style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
       >
-        {/* Handle */}
         <div className="flex items-center justify-center pt-3 pb-1">
           <div className="w-12 h-1.5 rounded-full bg-gray-200" />
         </div>
 
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-warm-border/60">
           <h2 className="text-lg font-bold text-warm-text">Log a Sale</h2>
           <button
@@ -214,9 +206,7 @@ function LogSaleSheet({ open, onClose, items }) {
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
-          {/* Item select */}
           <div>
             <label className="text-xs font-medium text-warm-muted mb-1.5 block">Item</label>
             <select
@@ -232,7 +222,6 @@ function LogSaleSheet({ open, onClose, items }) {
             </select>
           </div>
 
-          {/* Quantity */}
           <div>
             <label className="text-xs font-medium text-warm-muted mb-1.5 block">Quantity sold</label>
             <input
@@ -244,7 +233,6 @@ function LogSaleSheet({ open, onClose, items }) {
             />
           </div>
 
-          {/* Amount */}
           <div>
             <label className="text-xs font-medium text-warm-muted mb-1.5 block">Total amount (₦)</label>
             <input
@@ -256,22 +244,12 @@ function LogSaleSheet({ open, onClose, items }) {
             />
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
-            disabled={!item || !quantity || !amount || submitting}
+            disabled={!item || !quantity || !amount}
             className="w-full h-12 rounded-xl bg-sabi-green text-white font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            {submitting ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : success ? (
-              <>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                Sale Logged!
-              </>
-            ) : (
-              'Log Sale'
-            )}
+            Log Sale
           </button>
         </form>
       </div>
