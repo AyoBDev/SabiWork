@@ -267,6 +267,67 @@ router.get('/phone/:phone', async (req, res) => {
 });
 
 /**
+ * GET /api/workers/:id/public
+ * Public profile for a worker — excludes sensitive fields
+ */
+router.get('/:id/public', async (req, res) => {
+  try {
+    const worker = await knex('workers').where({ id: req.params.id }).first();
+    if (!worker) return res.status(404).json({ error: 'Worker not found' });
+
+    // Completed jobs count
+    const completedResult = await knex('jobs')
+      .where({ worker_id: worker.id })
+      .whereIn('status', ['completed', 'payout_sent'])
+      .count('id as count')
+      .first();
+    const completedJobs = parseInt(completedResult.count) || 0;
+
+    // Average buyer rating
+    const ratingResult = await knex('jobs')
+      .where({ worker_id: worker.id })
+      .whereNotNull('buyer_rating')
+      .avg('buyer_rating as avg')
+      .first();
+    const averageRating = ratingResult.avg ? parseFloat(parseFloat(ratingResult.avg).toFixed(2)) : null;
+
+    // Trust tier label
+    const score = worker.trust_score || 0;
+    let trustTier;
+    if (score >= 0.8) trustTier = 'Elite';
+    else if (score >= 0.6) trustTier = 'Verified';
+    else if (score >= 0.3) trustTier = 'Trusted';
+    else trustTier = 'Emerging';
+
+    const profile = {
+      id: worker.id,
+      name: worker.name,
+      primary_trade: worker.primary_trade,
+      secondary_trades: worker.secondary_trades,
+      service_areas: worker.service_areas,
+      trust_score: worker.trust_score,
+      trust_tier: trustTier,
+      sabi_score: worker.sabi_score,
+      created_at: worker.created_at,
+      stats: {
+        completed_jobs: completedJobs,
+        average_buyer_rating: averageRating,
+        member_since: worker.created_at
+      }
+    };
+
+    if (worker.accepts_apprentices) {
+      profile.apprentice_slots = worker.apprentice_slots;
+    }
+
+    return res.status(200).json(profile);
+  } catch (error) {
+    console.error('Public worker profile error:', error);
+    return res.status(500).json({ error: 'Failed to fetch public profile' });
+  }
+});
+
+/**
  * GET /api/workers/:id
  * Get single worker profile
  */

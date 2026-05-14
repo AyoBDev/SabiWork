@@ -120,6 +120,55 @@ router.post('/rounds', async (req, res) => {
 });
 
 /**
+ * GET /api/invest/rounds
+ * List open/public investment rounds for discovery
+ * Supports ?limit=20&offset=0
+ */
+router.get('/rounds', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const rounds = await knex('investment_rounds')
+      .join('traders', 'investment_rounds.trader_id', 'traders.id')
+      .where({ 'investment_rounds.status': 'open', 'investment_rounds.visibility': 'public' })
+      .select(
+        'investment_rounds.id',
+        'traders.name as trader_name',
+        'traders.business_type',
+        'traders.sabi_score',
+        'investment_rounds.target_amount',
+        'investment_rounds.raised_amount',
+        'investment_rounds.interest_rate',
+        'investment_rounds.repayment_split',
+        'investment_rounds.created_at'
+      )
+      .orderBy('investment_rounds.created_at', 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    return res.status(200).json({
+      rounds: rounds.map(r => ({
+        id: r.id,
+        trader_name: r.trader_name,
+        business_type: r.business_type,
+        sabi_score: r.sabi_score,
+        target_amount: r.target_amount,
+        raised_amount: r.raised_amount,
+        interest_rate: parseFloat(r.interest_rate),
+        repayment_split: parseFloat(r.repayment_split),
+        created_at: r.created_at
+      })),
+      limit,
+      offset
+    });
+  } catch (error) {
+    console.error('Rounds listing error:', error);
+    return res.status(500).json({ error: 'Failed to list rounds', details: error.message });
+  }
+});
+
+/**
  * GET /api/invest/rounds/:id
  * Public view of an investment round
  * Returns trader info, round details, and list of investors

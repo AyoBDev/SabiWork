@@ -250,6 +250,58 @@ router.get('/report', async (req, res) => {
 });
 
 /**
+ * GET /api/traders/:id/public
+ * Public profile for a trader — excludes sensitive fields
+ */
+router.get('/:id/public', async (req, res) => {
+  try {
+    const trader = await knex('traders').where({ id: req.params.id }).first();
+    if (!trader) return res.status(404).json({ error: 'Trader not found' });
+
+    // Sabi tier label
+    const score = trader.sabi_score || 0;
+    let sabiTier;
+    if (score >= 80) sabiTier = 'Elite';
+    else if (score >= 60) sabiTier = 'Verified';
+    else if (score >= 30) sabiTier = 'Trusted';
+    else sabiTier = 'Emerging';
+
+    // Total logged sales count
+    const totalLoggedSales = trader.total_logged_sales || 0;
+
+    // Check for active open investment round
+    const activeRound = await knex('investment_rounds')
+      .where({ trader_id: trader.id, status: 'open' })
+      .first();
+
+    const profile = {
+      id: trader.id,
+      name: trader.name,
+      business_type: trader.business_type,
+      area: trader.area,
+      sabi_score: trader.sabi_score,
+      sabi_tier: sabiTier,
+      created_at: trader.created_at,
+      total_logged_sales: totalLoggedSales
+    };
+
+    if (activeRound) {
+      profile.investment_round = {
+        id: activeRound.id,
+        target_amount: activeRound.target_amount,
+        raised_amount: activeRound.raised_amount,
+        interest_rate: parseFloat(activeRound.interest_rate)
+      };
+    }
+
+    return res.status(200).json(profile);
+  } catch (error) {
+    console.error('Public trader profile error:', error);
+    return res.status(500).json({ error: 'Failed to fetch public profile' });
+  }
+});
+
+/**
  * GET /api/traders/:id/daily-stats
  * Get today's summary for a trader
  */
