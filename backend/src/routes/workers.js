@@ -253,6 +253,20 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * GET /api/workers/phone/:phone
+ * Get worker by phone number (used for auth/login)
+ */
+router.get('/phone/:phone', async (req, res) => {
+  try {
+    const worker = await knex('workers').where({ phone: req.params.phone }).first();
+    if (!worker) return res.status(404).json({ error: 'Worker not found' });
+    return res.status(200).json(worker);
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to fetch worker' });
+  }
+});
+
+/**
  * GET /api/workers/:id
  * Get single worker profile
  */

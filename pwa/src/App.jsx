@@ -7,6 +7,7 @@ import ProfilePage from './pages/ProfilePage';
 import PulsePage from './pages/PulsePage';
 import LocationCapture from './pages/LocationCapture';
 import InvestPage from './pages/InvestPage';
+import AuthPage from './pages/AuthPage';
 import BottomNav from './components/ui/BottomNav';
 import ChatSheet from './components/chat/ChatSheet';
 import AIButton from './components/chat/AIButton';
@@ -18,6 +19,19 @@ import useAppStore from './stores/appStore';
 export default function App() {
   const { user } = useAppStore();
   const isAgent = user?.role === 'agent';
+
+  // Public routes (no auth required)
+  // LocationCapture is accessed via QR code — must remain public
+  if (!user) {
+    return (
+      <div className="h-screen w-screen overflow-hidden bg-white relative">
+        <Routes>
+          <Route path="/join/:phone" element={<LocationCapture />} />
+          <Route path="*" element={<AuthPage />} />
+        </Routes>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-white relative">

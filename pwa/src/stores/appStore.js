@@ -1,10 +1,31 @@
 // pwa/src/stores/appStore.js
 import { create } from 'zustand';
 
+// Hydrate user from localStorage on init
+function getPersistedUser() {
+  try {
+    const stored = localStorage.getItem('sabiwork_user');
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
 const useAppStore = create((set, get) => ({
-  // User state
-  user: null,
-  setUser: (user) => set({ user }),
+  // User state (hydrated from localStorage)
+  user: getPersistedUser(),
+  setUser: (user) => {
+    if (user) {
+      localStorage.setItem('sabiwork_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('sabiwork_user');
+    }
+    set({ user });
+  },
+  logout: () => {
+    localStorage.removeItem('sabiwork_user');
+    set({ user: null });
+  },
 
   // Workers on map
   workers: [],
