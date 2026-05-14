@@ -12,6 +12,8 @@ export function useAgentChat() {
   const setChatOpen = useAppStore((s) => s.setChatOpen);
   const setHighlightedWorkerId = useAppStore((s) => s.setHighlightedWorkerId);
   const setAgentSelectedWorker = useAppStore((s) => s.setAgentSelectedWorker);
+  const addSale = useAppStore((s) => s.addSale);
+  const setPendingNavigation = useAppStore((s) => s.setPendingNavigation);
 
   async function animateSteps(steps) {
     for (const step of steps) {
@@ -70,6 +72,18 @@ export function useAgentChat() {
       // Handle worker_card type with map animation
       if (response.type === 'worker_card' && response.data) {
         await handleWorkerCard(response.data);
+      }
+
+      // Handle sale_logged — push sale to store and navigate to inventory
+      if (response.type === 'sale_logged' && response.data) {
+        addSale({
+          ...response.data.sale,
+          today_total: response.data.today_total,
+          today_count: response.data.today_count,
+          sabi_score_after: response.data.sabi_score_after,
+          logged_at: new Date().toISOString()
+        });
+        setPendingNavigation('/pulse');
       }
 
       // Show final message

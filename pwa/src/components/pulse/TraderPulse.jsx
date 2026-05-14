@@ -17,65 +17,53 @@ function getStockStatus(stock, maxStock) {
   return { label: 'Good', color: 'text-sabi-green', bg: 'bg-green-50', bar: 'bg-sabi-green' };
 }
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 export default function TraderPulse({ user }) {
+  const salesLog = useAppStore((s) => s.salesLog);
+  const addSale = useAppStore((s) => s.addSale);
   const [items] = useState(DEMO_ITEMS);
   const [showLogSale, setShowLogSale] = useState(false);
-  const [agentState, setAgentState] = useState(null); // null | { steps: [], result: null, loading: bool }
 
   const totalItems = items.length;
   const lowStockItems = items.filter(i => getStockStatus(i.stock, i.maxStock).label !== 'Good');
   const lowStockNames = lowStockItems.slice(0, 3).map(i => i.name.split(' (')[0]);
 
-  async function handleLogSaleSubmit(itemName, quantity, amount) {
+  async function handleManualLogSale(itemName, quantity, amount) {
     setShowLogSale(false);
 
+    const phone = user?.phone || useAppStore.getState().user?.phone;
     const message = `sold ${quantity} ${itemName} for ${amount}`;
 
-    // Start agent animation
-    setAgentState({ steps: ['Processing your sale...'], result: null, loading: true });
-
     try {
-      const userState = useAppStore.getState().user;
-
-      const response = await api.sendChat(message, {
-        user_id: userState?.phone || userState?.id,
-        user_type: 'trader'
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/traders/log-sale`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message })
       });
 
-      // Animate through steps
-      if (response.steps && response.steps.length > 0) {
-        for (let i = 0; i < response.steps.length; i++) {
-          await delay(700);
-          setAgentState(prev => ({ ...prev, steps: [...prev.steps, response.steps[i]] }));
-        }
+      if (res.ok) {
+        const data = await res.json();
+        addSale({
+          ...data.sale,
+          today_total: data.trader_stats?.today_total,
+          today_count: data.trader_stats?.today_count,
+          sabi_score_after: data.trader_stats?.sabi_score_after,
+          logged_at: new Date().toISOString()
+        });
+      } else {
+        addSale({
+          item_name: itemName,
+          quantity: parseInt(quantity),
+          amount: parseInt(amount),
+          logged_at: new Date().toISOString()
+        });
       }
-
-      await delay(500);
-
-      // Show result
-      setAgentState(prev => ({
-        ...prev,
-        loading: false,
-        result: {
-          message: response.message,
-          data: response.data,
-          type: response.type
-        }
-      }));
-
-      // Auto-dismiss after 5s
-      setTimeout(() => setAgentState(null), 5000);
-    } catch (err) {
-      setAgentState({
-        steps: ['Processing your sale...'],
-        loading: false,
-        result: { message: 'Something went wrong. Please try again.', type: 'error' }
+    } catch {
+      addSale({
+        item_name: itemName,
+        quantity: parseInt(quantity),
+        amount: parseInt(amount),
+        logged_at: new Date().toISOString()
       });
-      setTimeout(() => setAgentState(null), 4000);
     }
   }
 
@@ -130,62 +118,34 @@ export default function TraderPulse({ user }) {
         </div>
       </div>
 
-      {/* Agent action overlay */}
-      {agentState && (
-        <div className="mx-4 mt-4 bg-white rounded-xl border border-sabi-green/30 shadow-lg overflow-hidden">
-          <div className="bg-sabi-green/5 px-4 py-2.5 border-b border-sabi-green/10 flex items-center gap-2">
-            {agentState.loading ? (
-              <div className="w-4 h-4 border-2 border-sabi-green border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B7A3D" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-            )}
-            <span className="text-xs font-semibold text-sabi-green">
-              {agentState.loading ? 'SabiWork AI is working...' : 'Done'}
-            </span>
-            {!agentState.loading && (
-              <button onClick={() => setAgentState(null)} className="ml-auto text-warm-muted hover:text-warm-text">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-              </button>
-            )}
-          </div>
-
-          <div className="px-4 py-3 space-y-2">
-            {/* Steps */}
-            {agentState.steps.map((step, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  i === agentState.steps.length - 1 && agentState.loading ? 'bg-sabi-green animate-pulse' : 'bg-warm-muted'
-                }`} />
-                <p className="text-xs text-warm-muted">{step}</p>
+      {/* Recent sales logged (from AI or manual) */}
+      {salesLog.length > 0 && (
+        <div className="mx-4 mt-4 bg-white rounded-xl border border-sabi-green/20 p-4">
+          <h3 className="text-sm font-semibold text-warm-text mb-3 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1B7A3D" strokeWidth="2" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Recent Sales
+          </h3>
+          <div className="space-y-2">
+            {salesLog.slice(0, 5).map((sale, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-warm-border/30 last:border-0">
+                <div>
+                  <p className="text-xs font-medium text-warm-text">
+                    {sale.quantity}x {sale.item_name}
+                  </p>
+                  <p className="text-[10px] text-warm-muted">
+                    {new Date(sale.logged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold text-sabi-green">₦{Number(sale.amount).toLocaleString()}</p>
               </div>
             ))}
-
-            {/* Result */}
-            {agentState.result && (
-              <div className="mt-3 pt-3 border-t border-warm-border/50">
-                <p className="text-sm text-warm-text leading-relaxed">{agentState.result.message}</p>
-                {agentState.result.data && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {agentState.result.data.today_total != null && (
-                      <span className="text-[10px] bg-sabi-green/10 text-sabi-green font-medium px-2 py-1 rounded-full">
-                        Today: ₦{Number(agentState.result.data.today_total).toLocaleString()}
-                      </span>
-                    )}
-                    {agentState.result.data.sabi_score_after != null && (
-                      <span className="text-[10px] bg-blue-50 text-blue-600 font-medium px-2 py-1 rounded-full">
-                        Sabi Score: {agentState.result.data.sabi_score_after}
-                      </span>
-                    )}
-                    {agentState.result.data.today_count != null && (
-                      <span className="text-[10px] bg-warm-bg text-warm-text font-medium px-2 py-1 rounded-full">
-                        {agentState.result.data.today_count} sales today
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
+          {salesLog[0]?.today_total != null && (
+            <div className="mt-3 pt-3 border-t border-warm-border/50 flex items-center justify-between">
+              <span className="text-xs text-warm-muted">Today's total</span>
+              <span className="text-sm font-bold text-warm-text">₦{Number(salesLog[0].today_total).toLocaleString()}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -215,7 +175,7 @@ export default function TraderPulse({ user }) {
       </div>
 
       {/* Log Sale Sheet */}
-      <LogSaleSheet open={showLogSale} onClose={() => setShowLogSale(false)} items={items} onSubmit={handleLogSaleSubmit} />
+      <LogSaleSheet open={showLogSale} onClose={() => setShowLogSale(false)} items={items} onSubmit={handleManualLogSale} />
     </div>
   );
 }
@@ -269,11 +229,14 @@ function LogSaleSheet({ open, onClose, items, onSubmit }) {
   const [item, setItem] = useState('');
   const [quantity, setQuantity] = useState('');
   const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!item || !quantity || !amount) return;
-    onSubmit(item, quantity, amount);
+    setLoading(true);
+    await onSubmit(item, quantity, amount);
+    setLoading(false);
     setItem('');
     setQuantity('');
     setAmount('');
@@ -350,10 +313,14 @@ function LogSaleSheet({ open, onClose, items, onSubmit }) {
 
           <button
             type="submit"
-            disabled={!item || !quantity || !amount}
+            disabled={!item || !quantity || !amount || loading}
             className="w-full h-12 rounded-xl bg-sabi-green text-white font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            Log Sale
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              'Log Sale'
+            )}
           </button>
         </form>
       </div>

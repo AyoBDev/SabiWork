@@ -63,7 +63,16 @@ const useAppStore = create((set, get) => ({
 
   // Loading states
   loading: false,
-  setLoading: (loading) => set({ loading })
+  setLoading: (loading) => set({ loading }),
+
+  // Trader sales log (recent sales logged this session)
+  salesLog: [],
+  addSale: (sale) => set((s) => ({ salesLog: [sale, ...s.salesLog] })),
+
+  // Navigation trigger (for AI agent to push user to a tab)
+  pendingNavigation: null,
+  setPendingNavigation: (path) => set({ pendingNavigation: path }),
+  clearPendingNavigation: () => set({ pendingNavigation: null })
 }));
 
 export default useAppStore;

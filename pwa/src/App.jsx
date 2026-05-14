@@ -1,5 +1,6 @@
 // pwa/src/App.jsx
-import { Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import MapPage from './pages/MapPage';
 import JobsPage from './pages/JobsPage';
 import WalletPage from './pages/WalletPage';
@@ -18,6 +19,21 @@ import OnboardPage from './components/agent/OnboardPage';
 import AgentStats from './components/agent/AgentStats';
 import AgentNav from './components/agent/AgentNav';
 import useAppStore from './stores/appStore';
+
+function NavigationListener() {
+  const navigate = useNavigate();
+  const pendingNavigation = useAppStore((s) => s.pendingNavigation);
+  const clearPendingNavigation = useAppStore((s) => s.clearPendingNavigation);
+
+  useEffect(() => {
+    if (pendingNavigation) {
+      navigate(pendingNavigation);
+      clearPendingNavigation();
+    }
+  }, [pendingNavigation, navigate, clearPendingNavigation]);
+
+  return null;
+}
 
 export default function App() {
   const { user } = useAppStore();
@@ -53,6 +69,7 @@ export default function App() {
         <Route path="/join/:phone" element={<LocationCapture />} />
         <Route path="/stats" element={<AgentStats />} />
       </Routes>
+      <NavigationListener />
       <ChatSheet />
       <AIButton />
       {isAgent ? <AgentNav /> : <BottomNav />}
