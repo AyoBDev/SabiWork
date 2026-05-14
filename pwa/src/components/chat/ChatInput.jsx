@@ -1,19 +1,17 @@
 // pwa/src/components/chat/ChatInput.jsx
 import { useState, useRef } from 'react';
 import useAppStore from '../../stores/appStore';
-import { useAgentChat } from '../../hooks/useAgentChat';
 
-export default function ChatInput() {
+export default function ChatInput({ onSend }) {
   const [text, setText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
   const { loading } = useAppStore();
-  const { send } = useAgentChat();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!text.trim() || loading) return;
-    send(text.trim());
+    onSend(text.trim());
     setText('');
   };
 
@@ -21,7 +19,7 @@ export default function ChatInput() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       // Fallback: show alert
-      send('Voice input is not supported on this browser');
+      onSend('Voice input is not supported on this browser');
       return;
     }
 
@@ -42,7 +40,7 @@ export default function ChatInput() {
       if (event.results[0].isFinal) {
         setIsListening(false);
         if (transcript.trim()) {
-          send(transcript.trim());
+          onSend(transcript.trim());
           setText('');
         }
       }

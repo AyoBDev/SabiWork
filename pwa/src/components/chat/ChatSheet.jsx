@@ -1,5 +1,5 @@
 // pwa/src/components/chat/ChatSheet.jsx
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import useAppStore from '../../stores/appStore';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -8,19 +8,29 @@ import { useAgentChat } from '../../hooks/useAgentChat';
 const QUICK_ACTIONS = [
   { label: 'Find a plumber', msg: 'Find me a plumber nearby' },
   { label: 'Log a sale', msg: 'I sold 5 bags of rice for 75000' },
-  { label: 'Create a round', msg: 'Create an investment round' },
   { label: 'My Sabi Score', msg: 'What is my Sabi Score?' },
+  { label: 'Help', msg: 'What can you do?' },
 ];
 
 export default function ChatSheet() {
   const { chatOpen, setChatOpen, messages } = useAppStore();
   const scrollRef = useRef(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const { send } = useAgentChat();
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  async function handleSend(text) {
+    setSuggestions([]);
+    const response = await send(text);
+    if (response?.suggestions) {
+      setSuggestions(response.suggestions);
+    }
+  }
 
   return (
     <div
@@ -34,7 +44,7 @@ export default function ChatSheet() {
         onClick={() => setChatOpen(false)}
       />
 
-      {/* Sheet — positioned from top with margin */}
+      {/* Sheet */}
       <div className="absolute inset-x-0 bottom-0 top-[8vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden">
         {/* Handle */}
         <div className="flex items-center justify-center pt-3 pb-1">
@@ -73,12 +83,17 @@ export default function ChatSheet() {
                 </svg>
               </div>
               <p className="text-lg font-bold text-warm-text mb-1">Wetin you need?</p>
-              <p className="text-sm text-warm-muted mb-6">Tell me what you need — voice or text. I'll find workers, log sales, create rounds, and more.</p>
+              <p className="text-sm text-warm-muted mb-6">Tell me what you need — voice or text. I'll find workers, log sales, and more.</p>
 
-              {/* Quick action chips */}
               <div className="flex flex-wrap gap-2 justify-center">
                 {QUICK_ACTIONS.map((action) => (
-                  <QuickChip key={action.label} label={action.label} msg={action.msg} />
+                  <button
+                    key={action.label}
+                    onClick={() => handleSend(action.msg)}
+                    className="px-3.5 py-2 rounded-full bg-sabi-green/10 text-sabi-green text-xs font-medium border border-sabi-green/20 hover:bg-sabi-green/20 active:scale-95 transition-all"
+                  >
+                    {action.label}
+                  </button>
                 ))}
               </div>
             </div>
@@ -88,22 +103,24 @@ export default function ChatSheet() {
           ))}
         </div>
 
-        {/* Input — always visible at bottom */}
-        <ChatInput />
+        {/* Suggestion chips */}
+        {suggestions.length > 0 && (
+          <div className="px-4 py-2 border-t border-warm-border/40 flex flex-wrap gap-2">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                onClick={() => handleSend(s)}
+                className="px-3 py-1.5 rounded-full bg-sabi-green/10 text-sabi-green text-xs font-medium border border-sabi-green/20 hover:bg-sabi-green/20 active:scale-95 transition-all"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Input */}
+        <ChatInput onSend={handleSend} />
       </div>
     </div>
-  );
-}
-
-function QuickChip({ label, msg }) {
-  const { send } = useAgentChat();
-
-  return (
-    <button
-      onClick={() => send(msg)}
-      className="px-3.5 py-2 rounded-full bg-sabi-green/10 text-sabi-green text-xs font-medium border border-sabi-green/20 hover:bg-sabi-green/20 active:scale-95 transition-all"
-    >
-      {label}
-    </button>
   );
 }

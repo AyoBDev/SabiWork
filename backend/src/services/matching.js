@@ -14,7 +14,20 @@ const MODELS = {
 
 const GROQ_TIMEOUT = 3000;
 
-async function classifyIntent(message) {
+const TRADE_KEYWORDS = {
+  'plumb': 'plumbing', 'pipe': 'plumbing', 'tap': 'plumbing', 'toilet': 'plumbing', 'water': 'plumbing',
+  'electric': 'electrical', 'wire': 'electrical', 'socket': 'electrical', 'light': 'electrical', 'nepa': 'electrical', 'gen': 'electrical', 'generator': 'electrical', 'ac': 'electrical',
+  'tailor': 'tailoring', 'sew': 'tailoring', 'cloth': 'tailoring', 'fashion': 'tailoring',
+  'tile': 'tiling', 'tiling': 'tiling', 'floor': 'tiling',
+  'carpenter': 'carpentry', 'wood': 'carpentry', 'door': 'carpentry', 'furniture': 'carpentry',
+  'paint': 'painting', 'wall': 'painting',
+  'weld': 'welding', 'iron': 'welding', 'metal': 'welding',
+  'clean': 'cleaning', 'wash': 'cleaning', 'laundry': 'cleaning', 'fumigat': 'cleaning',
+  'hair': 'hairdressing', 'barb': 'hairdressing', 'salon': 'hairdressing', 'braid': 'hairdressing',
+  'cook': 'catering', 'food': 'catering', 'cater': 'catering', 'event': 'catering'
+};
+
+async function classifyIntent(message, conversationHistory = '') {
   const tradeList = TRADES.join(', ');
   const areaList = LAGOS_AREAS.map(a => a.name).join(', ');
 
@@ -27,6 +40,13 @@ Possible intent types:
 - "sale_log" — user is logging a sale (they are a trader)
 - "status_check" — user asking about their score, points, or job status
 - "greeting" — hello, hi, etc.
+- "complaint" — user is unhappy with a worker, service not delivered, bad work
+- "reschedule" — user wants to change timing of an existing booking
+- "price_inquiry" — user asking how much a service costs (not requesting one)
+- "referral" — user referring someone else or asking for referral link
+- "re_engage" — user returning after absence, asking what's new/changed
+- "feedback" — user giving positive rating or review for a worker
+- "help" — user asking what the bot can do, wants menu/options
 - "unknown" — cannot determine intent
 
 Supported trades: ${tradeList}
@@ -40,14 +60,22 @@ Examples:
 - "wetin dey happen for my area" → job_seeker
 - "sold 3 bags rice 75000" → sale_log
 - "my tap dey leak" → buyer_request, plumbing
+- "the plumber never showed up" → complaint
+- "can he come tomorrow instead" → reschedule
+- "how much plumber cost" → price_inquiry
+- "my friend needs a cleaner" → referral
+- "what's new here" → re_engage
+- "he did great work" → feedback
+- "what can you do" → help
 
+${conversationHistory ? `Recent conversation for context:\n${conversationHistory}\n` : ''}
 Respond ONLY with a JSON object. No markdown, no explanation.`;
 
   const userPrompt = `Classify this message: "${message}"
 
 Return JSON:
 {
-  "type": "buyer_request|job_seeker|sale_log|status_check|greeting|unknown",
+  "type": "buyer_request|job_seeker|sale_log|status_check|greeting|complaint|reschedule|price_inquiry|referral|re_engage|feedback|help|unknown",
   "trade_category": "trade name or null",
   "location": "area name or null",
   "urgency": "low|medium|high",
@@ -81,30 +109,67 @@ Return JSON:
 function fallbackClassify(message) {
   const lower = message.toLowerCase();
 
-  if (/^sold?\s+.+\s+\d+/i.test(lower)) {
+  // Priority 1: Sale log
+  if (/^sold?\s+.+\s+\d+/i.test(lower) || /\d+\s*(bags?|cartons?|pieces?|crates?)\s+/i.test(lower)) {
     return { type: 'sale_log', trade_category: null, location: null, urgency: 'low', description: message, confidence: 0.8 };
   }
 
+  // Priority 2: Complaint
+  const complaintKeywords = ['never showed', "didn't come", 'no come', 'bad work', 'terrible', 'useless', 'not satisfied', 'waste', 'scam', 'cheat', 'complain', 'refund', 'no show'];
+  if (complaintKeywords.some(kw => lower.includes(kw))) {
+    return { type: 'complaint', trade_category: null, location: null, urgency: 'high', description: message, confidence: 0.75 };
+  }
+
+  // Priority 3: Reschedule
+  const rescheduleKeywords = ['reschedule', 'tomorrow', 'change time', 'come later', 'another day', 'postpone', 'shift'];
+  if (rescheduleKeywords.some(kw => lower.includes(kw)) && (lower.includes('can') || lower.includes('come') || lower.includes('change'))) {
+    return { type: 'reschedule', trade_category: null, location: null, urgency: 'medium', description: message, confidence: 0.7 };
+  }
+
+  // Priority 4: Price inquiry
+  if (/how much|wetin be price|cost|price of|charge|rate for/i.test(lower) &&
+      !lower.includes('need') && !lower.includes('find') && !lower.includes('get me')) {
+    let trade = null;
+    for (const [keyword, tradeCategory] of Object.entries(TRADE_KEYWORDS)) {
+      if (lower.includes(keyword)) {
+        trade = tradeCategory;
+        break;
+      }
+    }
+    return { type: 'price_inquiry', trade_category: trade, location: null, urgency: 'low', description: message, confidence: 0.7 };
+  }
+
+  // Priority 5: Feedback
+  if (/great work|good job|well done|thank|stars?|excellent|amazing|wonderful|rate|review/i.test(lower) &&
+      !lower.includes('need') && !lower.includes('find') && !lower.includes('get')) {
+    return { type: 'feedback', trade_category: null, location: null, urgency: 'low', description: message, confidence: 0.75 };
+  }
+
+  // Priority 6: Referral
+  if (/my friend|refer|someone I know|my (brother|sister|cousin|neighbor)/i.test(lower) &&
+      (lower.includes('need') || lower.includes('want') || lower.includes('look'))) {
+    return { type: 'referral', trade_category: null, location: null, urgency: 'medium', description: message, confidence: 0.7 };
+  }
+
+  // Priority 7: Re-engage
+  if (/what.?s new|any update|long time|wetin dey happen|what.?s going on|been a while/i.test(lower)) {
+    return { type: 're_engage', trade_category: null, location: null, urgency: 'low', description: message, confidence: 0.75 };
+  }
+
+  // Priority 8: Help
+  if (/what can you|help|menu|option|how (do|does) (this|it) work|what do you do/i.test(lower)) {
+    return { type: 'help', trade_category: null, location: null, urgency: 'low', description: message, confidence: 0.8 };
+  }
+
+  // Priority 9: Job seeker
   const seekerKeywords = ['learn', 'trade', 'apprentice', 'work', 'job', 'skill', 'demand', 'pathway'];
   if (seekerKeywords.some(kw => lower.includes(kw)) && !lower.includes('need') && !lower.includes('fix')) {
     return { type: 'job_seeker', trade_category: null, location: null, urgency: 'low', description: message, confidence: 0.6 };
   }
 
-  const tradeKeywords = {
-    'plumb': 'plumbing', 'pipe': 'plumbing', 'tap': 'plumbing', 'toilet': 'plumbing', 'water': 'plumbing',
-    'electric': 'electrical', 'wire': 'electrical', 'socket': 'electrical', 'light': 'electrical', 'nepa': 'electrical', 'gen': 'electrical', 'generator': 'electrical', 'ac': 'electrical',
-    'tailor': 'tailoring', 'sew': 'tailoring', 'cloth': 'tailoring', 'fashion': 'tailoring',
-    'tile': 'tiling', 'tiling': 'tiling', 'floor': 'tiling',
-    'carpenter': 'carpentry', 'wood': 'carpentry', 'door': 'carpentry', 'furniture': 'carpentry',
-    'paint': 'painting', 'wall': 'painting',
-    'weld': 'welding', 'iron': 'welding', 'metal': 'welding',
-    'clean': 'cleaning', 'wash': 'cleaning', 'laundry': 'cleaning', 'fumigat': 'cleaning',
-    'hair': 'hairdressing', 'barb': 'hairdressing', 'salon': 'hairdressing', 'braid': 'hairdressing',
-    'cook': 'catering', 'food': 'catering', 'cater': 'catering', 'event': 'catering'
-  };
-
+  // Priority 10: Buyer request via TRADE_KEYWORDS
   let trade = null;
-  for (const [keyword, tradeCategory] of Object.entries(tradeKeywords)) {
+  for (const [keyword, tradeCategory] of Object.entries(TRADE_KEYWORDS)) {
     if (lower.includes(keyword)) {
       trade = tradeCategory;
       break;
@@ -123,10 +188,12 @@ function fallbackClassify(message) {
     return { type: 'buyer_request', trade_category: trade, location, urgency: 'medium', description: message, confidence: 0.7 };
   }
 
+  // Priority 11: Greeting
   if (['hi', 'hello', 'hey', 'good morning', 'good afternoon'].some(g => lower.startsWith(g))) {
     return { type: 'greeting', trade_category: null, location: null, urgency: 'low', description: message, confidence: 0.9 };
   }
 
+  // Priority 12: Unknown
   return { type: 'unknown', trade_category: null, location: null, urgency: 'low', description: message, confidence: 0.3 };
 }
 

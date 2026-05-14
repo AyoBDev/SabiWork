@@ -1,59 +1,144 @@
-// backend/src/routes/chat.js
 const { Router } = require('express');
 const knex = require('../database/knex');
-const redis = require('../utils/redis');
 const eventBus = require('../utils/eventBus');
-const { classifyIntent, findNearbyWorkers, rankWorkers, generateMatchResponse } = require('../services/matching');
+const memory = require('../services/memory');
+const { transcribeAudio, isVoiceSupported } = require('../services/voice');
+const { classifyIntent, findNearbyWorkers, rankWorkers, generateMatchResponse, estimatePriceRange } = require('../services/matching');
 const { classifySale } = require('../services/nlp');
 const { generatePathwayRecommendation } = require('../services/demand');
+const { generateResponse, generateSuggestions, generateSteps } = require('../services/responseGen');
 const sabiScoreService = require('../services/sabiScore');
+const { handleComplaint } = require('../handlers/complaint');
+const { handleFeedback } = require('../handlers/feedback');
+const { handleReferral } = require('../handlers/referral');
+const { handleReschedule } = require('../handlers/reschedule');
 
 const router = Router();
 
 router.post('/', async (req, res) => {
   try {
-    const { message, user_id, user_type, user_lat, user_lng } = req.body;
+    let { message, audio_base64, user_id, user_type, user_lat, user_lng } = req.body;
+
+    // Voice transcription if audio provided
+    if (audio_base64 && !message) {
+      if (!isVoiceSupported()) {
+        return res.status(400).json({ error: 'Voice not supported — GROQ_API_KEY not configured' });
+      }
+      try {
+        const audioBuffer = Buffer.from(audio_base64, 'base64');
+        message = await transcribeAudio(audioBuffer, 'audio/ogg');
+      } catch (err) {
+        return res.status(200).json({
+          type: 'text',
+          message: "I couldn't understand that voice note. Try sending a text message instead.",
+          steps: [],
+          suggestions: ['Type your message', 'Try again']
+        });
+      }
+    }
 
     if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+      return res.status(400).json({ error: 'Message or audio_base64 is required' });
     }
 
-    const intent = await classifyIntent(message);
+    // Load conversation history
+    const conversationHistory = user_id ? await memory.getHistoryForPrompt(user_id, 3) : '';
+    const session = user_id ? await memory.getSession(user_id) : { context: {} };
 
+    // Save user message to memory
+    if (user_id) {
+      await memory.addMessage(user_id, 'user', message, { user_type });
+    }
+
+    // Classify intent with conversation context
+    const intent = await classifyIntent(message, conversationHistory);
+    const steps = generateSteps(intent);
+
+    // Route to handler
+    let handlerResult;
     switch (intent.type) {
       case 'buyer_request':
-        return await handleBuyerRequest(req, res, intent, { user_id, user_lat, user_lng });
-
+        handlerResult = await handleBuyerRequest(intent, { user_id, user_lat, user_lng });
+        break;
       case 'sale_log':
-        return await handleSaleLog(req, res, message, user_id);
-
+        handlerResult = await handleSaleLog(message, user_id);
+        break;
       case 'job_seeker':
-        return await handleJobSeeker(req, res, intent, { user_id, user_lat, user_lng });
-
+        handlerResult = await handleJobSeeker(intent, { user_id, user_lat, user_lng });
+        break;
       case 'greeting':
-        return res.status(200).json({
-          type: 'text',
-          message: getGreeting(user_type),
-          intent
-        });
-
+        handlerResult = { type: 'text', message: getGreeting(user_type || session.user_type) };
+        break;
       case 'status_check':
-        return await handleStatusCheck(req, res, user_id, user_type);
-
+        handlerResult = await handleStatusCheck(user_id, user_type || session.user_type);
+        break;
+      case 'complaint':
+        handlerResult = await handleComplaint(intent, { user_id });
+        break;
+      case 'feedback':
+        handlerResult = await handleFeedback(intent, { user_id });
+        break;
+      case 'referral':
+        handlerResult = await handleReferral(intent, { user_id });
+        break;
+      case 'reschedule':
+        handlerResult = await handleReschedule(intent, { user_id });
+        break;
+      case 'price_inquiry':
+        handlerResult = handlePriceInquiry(intent);
+        break;
+      case 're_engage':
+        handlerResult = await handleReEngage(user_id, user_type || session.user_type);
+        break;
+      case 'help':
+        handlerResult = { type: 'help', message: getHelpMessage(user_type || session.user_type) };
+        break;
       default:
-        return res.status(200).json({
-          type: 'text',
-          message: "I'm not sure what you need. Try:\n• \"I need a plumber in Yaba\"\n• \"sold 3 bags rice 75000\"\n• \"what trades are in demand near me?\"",
-          intent
-        });
+        handlerResult = { type: 'text', message: null };
+        break;
     }
+
+    // Generate natural response via 70B
+    const naturalMessage = await generateResponse({
+      handlerResult,
+      intent,
+      conversationHistory,
+      userType: user_type || session.user_type
+    });
+
+    const suggestions = generateSuggestions(intent, handlerResult);
+
+    // Update memory with context
+    if (user_id) {
+      await memory.addMessage(user_id, 'assistant', naturalMessage);
+      await memory.updateContext(user_id, {
+        last_intent: intent.type,
+        last_worker_match: handlerResult.data?.id || handlerResult.data?.worker_id || session.context.last_worker_match,
+        pending_action: null
+      });
+    }
+
+    const responseData = handlerResult.data || null;
+    if (responseData && handlerResult.alternatives) {
+      responseData.alternatives = handlerResult.alternatives;
+    }
+
+    return res.status(200).json({
+      type: handlerResult.type || 'text',
+      message: naturalMessage,
+      data: responseData,
+      steps,
+      suggestions,
+      intent,
+      transcribed_text: audio_base64 ? message : undefined
+    });
   } catch (error) {
     console.error('Chat error:', error);
     return res.status(500).json({ error: 'Chat processing failed', details: error.message });
   }
 });
 
-async function handleBuyerRequest(req, res, intent, { user_id, user_lat, user_lng }) {
+async function handleBuyerRequest(intent, { user_id, user_lat, user_lng }) {
   await knex('demand_signals').insert({
     trade_category: intent.trade_category || 'unknown',
     area: intent.location,
@@ -69,16 +154,15 @@ async function handleBuyerRequest(req, res, intent, { user_id, user_lat, user_ln
   if (candidates.length === 0) {
     eventBus.emit('unmatched_demand', {
       actor: 'AI Engine',
-      description: `Unmatched request: ${(intent.trade_category || 'worker').replace('_', ' ')} in ${intent.location || 'unknown area'} — no workers available`,
-      metadata: { trade: intent.trade_category, area: intent.location, channel: 'pwa' }
+      description: `Unmatched request: ${(intent.trade_category || 'worker').replace('_', ' ')} in ${intent.location || 'unknown area'}`,
+      metadata: { trade: intent.trade_category, area: intent.location, channel: 'chat' }
     });
 
-    return res.status(200).json({
+    return {
       type: 'text',
-      message: `No ${(intent.trade_category || 'worker').replace('_', ' ')} available near ${intent.location || 'you'} right now. We've logged your request and will notify you when one becomes available.`,
-      intent,
-      matched: false
-    });
+      message: `No ${(intent.trade_category || 'worker').replace('_', ' ')} available near ${intent.location || 'you'} right now. Request logged.`,
+      data: null
+    };
   }
 
   const { topMatch, reasoning, allCandidates } = await rankWorkers(intent, candidates);
@@ -90,55 +174,41 @@ async function handleBuyerRequest(req, res, intent, { user_id, user_lat, user_ln
     .limit(1)
     .update({ matched: true });
 
-  // Broadcast match to dashboard
   eventBus.emit('job_matched', {
     actor: 'AI Engine',
-    description: `Matched buyer with ${topMatch.name} (${intent.trade_category}, SabiScore ${topMatch.sabi_score || 'N/A'}, ${topMatch.distance_km ? Math.round(topMatch.distance_km * 10) / 10 + 'km' : intent.location || 'Lagos'})`,
-    metadata: { worker_name: topMatch.name, service: intent.trade_category, area: intent.location, channel: 'pwa' }
+    description: `Matched buyer with ${topMatch.name} (${intent.trade_category})`,
+    metadata: { worker_name: topMatch.name, service: intent.trade_category, area: intent.location, channel: 'chat' }
   });
 
-  return res.status(200).json({
+  return {
     type: 'worker_card',
     message: matchResponse.message,
     data: matchResponse.worker_card,
-    reasoning: matchResponse.reasoning,
     alternatives: allCandidates.slice(1, 4).map(w => ({
       id: w.id,
       name: w.name,
       trust_score: parseFloat(w.trust_score),
       distance_km: w.distance_km ? Math.round(w.distance_km * 10) / 10 : null
-    })),
-    intent
-  });
+    }))
+  };
 }
 
-async function handleSaleLog(req, res, message, userId) {
+async function handleSaleLog(message, userId) {
   let trader = null;
   if (userId) {
-    // Try phone lookup first (most common from WhatsApp), then UUID
     trader = await knex('traders').where({ phone: userId }).first();
     if (!trader) {
-      try {
-        trader = await knex('traders').where({ id: userId }).first();
-      } catch (_) { /* userId is not a valid UUID, ignore */ }
+      try { trader = await knex('traders').where({ id: userId }).first(); } catch (_) {}
     }
   }
 
   if (!trader) {
-    return res.status(200).json({
-      type: 'text',
-      message: "You're not registered as a trader yet. Send \"register trader\" to get started.",
-      intent: { type: 'sale_log' }
-    });
+    return { type: 'text', message: "You're not registered as a trader yet. Send \"register trader\" to get started." };
   }
 
   const sale = await classifySale(message);
   if (!sale) {
-    return res.status(200).json({
-      type: 'text',
-      message: "I couldn't understand that sale. Try: \"sold 3 bags rice 75000\"",
-      intent: { type: 'sale_log' }
-    });
+    return { type: 'text', message: "I couldn't understand that sale. Try: \"sold 3 bags rice 75000\"" };
   }
 
   await knex('sales_logs').insert({
@@ -166,10 +236,7 @@ async function handleSaleLog(req, res, message, userId) {
   const todayStats = await knex('sales_logs')
     .where({ trader_id: trader.id })
     .where('logged_at', '>=', today)
-    .select(
-      knex.raw('COALESCE(SUM(amount), 0) as total'),
-      knex.raw('COUNT(*) as count')
-    )
+    .select(knex.raw('COALESCE(SUM(amount), 0) as total'), knex.raw('COUNT(*) as count'))
     .first();
 
   const weekStats = await knex('sales_logs')
@@ -179,32 +246,30 @@ async function handleSaleLog(req, res, message, userId) {
     .first();
 
   const sabiResult = await sabiScoreService.calculateTraderSabiScore(trader.id);
-  const previousScore = trader.sabi_score;
   const weeksToLoan = sabiResult.score >= 50 ? 0 : Math.ceil((50 - sabiResult.score) / 2);
 
-  // Broadcast to dashboard
   eventBus.emit('sale_logged', {
     actor: trader.name,
-    description: `Sale logged: ${sale.quantity}x ${sale.item_name} for ₦${sale.amount.toLocaleString()} — SabiScore: ${sabiResult.score}`,
-    metadata: { amount: sale.amount, trader_name: trader.name, area: trader.area, category: sale.category, sabi_score: sabiResult.score, channel: 'whatsapp' }
+    description: `Sale logged: ${sale.quantity}x ${sale.item_name} for ₦${sale.amount.toLocaleString()}`,
+    metadata: { amount: sale.amount, trader_name: trader.name, sabi_score: sabiResult.score, channel: 'chat' }
   });
 
-  return res.status(200).json({
+  return {
     type: 'sale_logged',
-    message: `📦 Sale Logged!`,
+    message: `Sale logged: ${sale.quantity}x ${sale.item_name} — ₦${sale.amount.toLocaleString()}`,
     data: {
       sale,
       today_total: parseInt(todayStats.total) || 0,
       today_count: parseInt(todayStats.count) || 0,
       week_total: parseInt(weekStats.total) || 0,
-      sabi_score_before: previousScore,
+      sabi_score_before: trader.sabi_score,
       sabi_score_after: sabiResult.score,
       weeks_to_loan: weeksToLoan
     }
-  });
+  };
 }
 
-async function handleJobSeeker(req, res, intent, { user_id, user_lat, user_lng }) {
+async function handleJobSeeker(intent, { user_id, user_lat, user_lng }) {
   let area = intent.location;
   if (!area && user_id) {
     const seeker = await knex('seekers').where({ id: user_id }).orWhere({ phone: user_id }).first();
@@ -219,7 +284,7 @@ async function handleJobSeeker(req, res, intent, { user_id, user_lat, user_lng }
 
   const pathway = await generatePathwayRecommendation(user_lat, user_lng, area);
 
-  return res.status(200).json({
+  return {
     type: 'demand_card',
     message: `Here's what's in demand near ${pathway.area}:`,
     data: {
@@ -234,14 +299,13 @@ async function handleJobSeeker(req, res, intent, { user_id, user_lat, user_lng }
         distance_km: a.distance_km,
         slots: a.master_areas ? 1 : 0
       }))
-    },
-    intent
-  });
+    }
+  };
 }
 
-async function handleStatusCheck(req, res, userId, userType) {
+async function handleStatusCheck(userId, userType) {
   if (!userId) {
-    return res.status(200).json({ type: 'text', message: "I couldn't find your profile. Please register first." });
+    return { type: 'text', message: "I couldn't find your profile. Please register first." };
   }
 
   if (userType === 'worker' || !userType) {
@@ -250,16 +314,18 @@ async function handleStatusCheck(req, res, userId, userType) {
       try { worker = await knex('workers').where({ id: userId }).first(); } catch (_) {}
     }
     if (worker) {
-      return res.status(200).json({
+      const { getTier } = require('../services/trust');
+      return {
         type: 'status',
+        message: `Your trust score is ${parseFloat(worker.trust_score).toFixed(2)} — ${getTier(parseFloat(worker.trust_score)).label} tier.`,
         data: {
           trust_score: parseFloat(worker.trust_score),
           sabi_score: worker.sabi_score,
           total_jobs: worker.total_jobs,
           total_income: worker.total_income,
-          tier: require('../services/trust').getTier(parseFloat(worker.trust_score))
+          tier: getTier(parseFloat(worker.trust_score))
         }
-      });
+      };
     }
   }
 
@@ -269,21 +335,47 @@ async function handleStatusCheck(req, res, userId, userType) {
       try { trader = await knex('traders').where({ id: userId }).first(); } catch (_) {}
     }
     if (trader) {
-      return res.status(200).json({
+      return {
         type: 'status',
+        message: `Sabi Score: ${trader.sabi_score}. Total sales: ${trader.total_logged_sales}.`,
         data: {
           sabi_score: trader.sabi_score,
           total_sales: trader.total_logged_sales,
           total_revenue: trader.total_logged_revenue
         }
-      });
+      };
     }
   }
 
-  return res.status(200).json({
-    type: 'text',
-    message: "I couldn't find your profile. Please register first."
-  });
+  return { type: 'text', message: "I couldn't find your profile. Please register first." };
+}
+
+function handlePriceInquiry(intent) {
+  const priceRange = estimatePriceRange(intent.trade_category || 'plumbing');
+  const tradeName = (intent.trade_category || 'service').replace('_', ' ');
+
+  return {
+    type: 'price_inquiry',
+    message: `${tradeName} typically costs ₦${priceRange.min.toLocaleString()} – ₦${priceRange.max.toLocaleString()}.`,
+    data: { trade: intent.trade_category, ...priceRange }
+  };
+}
+
+async function handleReEngage(userId, userType) {
+  let summary = 'Welcome back!';
+  if (userId && userType === 'trader') {
+    const trader = await knex('traders').where({ phone: userId }).orWhere({ id: userId }).first();
+    if (trader) {
+      summary = `Welcome back! Your Sabi Score is ${trader.sabi_score}. You've logged ${trader.total_logged_sales} sales total.`;
+    }
+  } else if (userId && (userType === 'worker' || !userType)) {
+    const worker = await knex('workers').where({ phone: userId }).orWhere({ id: userId }).first();
+    if (worker) {
+      summary = `Welcome back! You've completed ${worker.total_jobs} jobs. Trust score: ${parseFloat(worker.trust_score).toFixed(2)}.`;
+    }
+  }
+
+  return { type: 're_engage', message: summary, data: null };
 }
 
 function getGreeting(userType) {
@@ -293,6 +385,16 @@ function getGreeting(userType) {
     case 'seeker': return "Hey! Want to see what trades are in demand near you today?";
     default: return "Welcome to SabiWork! What do you need help with?";
   }
+}
+
+function getHelpMessage(userType) {
+  const base = "I can help you with:\n• Find workers nearby\n• Log sales\n• Check your Sabi Score\n• Create investment rounds\n• Check wallet balance";
+  const extras = {
+    trader: "\n• Get weekly sales reports\n• Track your path to microloans",
+    worker: "\n• Update availability\n• See your trust score\n• Find jobs",
+    seeker: "\n• See in-demand trades\n• Find apprenticeships"
+  };
+  return base + (extras[userType] || '');
 }
 
 module.exports = router;
