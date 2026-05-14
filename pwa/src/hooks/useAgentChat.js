@@ -6,7 +6,12 @@ import api from '../services/api';
 const INTENTS = [
   {
     id: 'find_worker',
-    patterns: [/find\s+(a\s+)?(\w+)/i, /look\s+for\s+(a\s+)?(\w+)/i, /i\s+need\s+(a\s+)?(\w+)/i, /get\s+me\s+(a\s+)?(\w+)/i],
+    patterns: [
+      /find\s+(?:me\s+)?(?:the\s+)?(?:a\s+)?(?:cheapest|closest|best|nearest|most affordable)?\s*(\w+)/i,
+      /look\s+for\s+(?:a\s+)?(?:the\s+)?(?:cheapest|closest|best|nearest)?\s*(\w+)/i,
+      /i\s+need\s+(?:a\s+)?(?:the\s+)?(?:cheapest|closest|best|nearest)?\s*(\w+)/i,
+      /get\s+me\s+(?:a\s+)?(?:the\s+)?(?:cheapest|closest|best|nearest)?\s*(\w+)/i
+    ],
     trades: ['plumber', 'electrician', 'carpenter', 'cleaner', 'tailor', 'hairdresser', 'painter', 'caterer', 'welder', 'tiler']
   },
   {
@@ -32,11 +37,18 @@ function detectIntent(text) {
     for (const pattern of intent.patterns) {
       const match = text.match(pattern);
       if (match) {
-        // For find_worker, extract the trade
+        // For find_worker, extract the trade from the last captured group
         if (intent.id === 'find_worker') {
-          const possibleTrade = (match[2] || '').toLowerCase();
-          const trade = intent.trades.find(t => t.startsWith(possibleTrade) || possibleTrade.startsWith(t.slice(0, -1)));
-          return { intent: intent.id, trade: trade || possibleTrade, raw: text };
+          const captured = match[match.length - 1] || '';
+          const possibleTrade = captured.toLowerCase().replace(/s$/, ''); // remove trailing 's'
+          const trade = intent.trades.find(t =>
+            t.startsWith(possibleTrade) ||
+            possibleTrade.startsWith(t.slice(0, -2)) ||
+            t.includes(possibleTrade)
+          );
+          if (trade || possibleTrade.length > 2) {
+            return { intent: intent.id, trade: trade || possibleTrade, raw: text };
+          }
         }
         // For log_sale, extract amount info
         if (intent.id === 'log_sale') {
@@ -59,6 +71,7 @@ export function useAgentChat() {
   const addMessage = useAppStore((s) => s.addMessage);
   const setWorkers = useAppStore((s) => s.setWorkers);
   const setChatOpen = useAppStore((s) => s.setChatOpen);
+  const setHighlightedWorkerId = useAppStore((s) => s.setHighlightedWorkerId);
 
   async function addAgentStep(text, stepType = 'thinking') {
     addMessage({
@@ -80,38 +93,134 @@ export function useAgentChat() {
     });
   }
 
+  // Calculate distance between two lat/lng points (km)
+  function calcDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   async function handleFindWorker(parsed) {
     const trade = parsed.trade || 'plumber';
+    const wantsCheapest = /cheap|affordable|budget|low.?price|lowest/i.test(parsed.raw);
+    const wantsClosest = /close|near|closest|nearby/i.test(parsed.raw);
+    const wantsBest = /best|top|highest.?rat/i.test(parsed.raw);
 
     await addAgentStep(`Understanding your request...`);
-    await addAgentStep(`Searching for ${trade}s near your location...`, 'searching');
+
+    // Detect criteria
+    const criteria = [];
+    if (wantsCheapest) criteria.push('lowest price');
+    if (wantsClosest) criteria.push('closest distance');
+    if (wantsBest) criteria.push('highest rating');
+    if (criteria.length === 0) criteria.push('best match');
+
+    await addAgentStep(`Looking for ${trade}s — optimizing for ${criteria.join(' & ')}...`, 'searching');
 
     try {
       const data = await api.getWorkers({ available: true });
       const workers = data.workers || data;
 
-      // Filter by trade if possible
+      // Filter by trade
       const filtered = workers.filter(w =>
         w.primary_trade?.toLowerCase().includes(trade.slice(0, -1)) ||
         w.primary_trade?.toLowerCase() === trade
       );
 
-      const results = filtered.length > 0 ? filtered : workers.slice(0, 5);
+      const results = filtered.length > 0 ? filtered : workers.slice(0, 6);
 
-      await addAgentStep(`Found ${results.length} ${trade}${results.length > 1 ? 's' : ''} available`, 'success');
+      if (results.length === 0) {
+        await addAgentResult(`No ${trade}s found nearby. Try a different trade or widen your search area.`);
+        return;
+      }
 
-      // Update map markers
-      setWorkers(results);
+      await addAgentStep(`Found ${results.length} ${trade}${results.length > 1 ? 's' : ''}. Evaluating each one...`, 'success');
 
-      await addAgentResult(
-        `I found ${results.length} ${trade}${results.length > 1 ? 's' : ''} near you. I've updated the map with their locations. Tap any marker to see their profile and book them.`,
-        { workers: results, trade },
-        'show_map'
-      );
+      // Get user's position from map center
+      const [userLng, userLat] = useAppStore.getState().mapCenter;
 
-      // Close chat after a moment to show map
-      await delay(1500);
+      // Enrich workers with distance and simulated pricing
+      const evaluated = results.map(w => {
+        const dist = calcDistance(
+          userLat, userLng,
+          parseFloat(w.location_lat), parseFloat(w.location_lng)
+        );
+        // Simulate hourly rate based on rating (demo)
+        const baseRate = 2000 + Math.floor(Math.random() * 5000);
+        const rate = w.hourly_rate || baseRate;
+        return { ...w, _distance: dist, _rate: rate };
+      });
+
+      // Show workers on map first
+      setWorkers(evaluated);
+
+      // Close chat to show the map evaluation
+      await delay(800);
       setChatOpen(false);
+
+      // Animate through each worker on the map
+      for (let i = 0; i < evaluated.length; i++) {
+        const w = evaluated[i];
+        setHighlightedWorkerId(w.id);
+
+        // Add evaluation step visible in messages (user can reopen chat to see)
+        addMessage({
+          type: 'agent_step',
+          text: `Checking ${w.name}: ₦${w._rate.toLocaleString()}/hr • ${w._distance.toFixed(1)}km away • ${(w.avg_rating || 4.5).toFixed(1)}★`,
+          stepType: i === evaluated.length - 1 ? 'action' : 'searching',
+          sender: 'ai'
+        });
+
+        await delay(1200 + Math.random() * 400);
+      }
+
+      // Pick the best one based on criteria
+      let best;
+      if (wantsCheapest) {
+        best = evaluated.reduce((a, b) => a._rate < b._rate ? a : b);
+      } else if (wantsClosest) {
+        best = evaluated.reduce((a, b) => a._distance < b._distance ? a : b);
+      } else if (wantsBest) {
+        best = evaluated.reduce((a, b) => (a.avg_rating || 0) > (b.avg_rating || 0) ? a : b);
+      } else {
+        // Score: weight distance (40%), price (40%), rating (20%)
+        const maxDist = Math.max(...evaluated.map(w => w._distance));
+        const maxRate = Math.max(...evaluated.map(w => w._rate));
+        best = evaluated.reduce((a, b) => {
+          const scoreA = (1 - a._distance / maxDist) * 0.4 + (1 - a._rate / maxRate) * 0.4 + ((a.avg_rating || 4) / 5) * 0.2;
+          const scoreB = (1 - b._distance / maxDist) * 0.4 + (1 - b._rate / maxRate) * 0.4 + ((b.avg_rating || 4) / 5) * 0.2;
+          return scoreA > scoreB ? a : b;
+        });
+      }
+
+      // Highlight the winner
+      setHighlightedWorkerId(best.id);
+
+      addMessage({
+        type: 'agent_step',
+        text: `✓ Best match: ${best.name}`,
+        stepType: 'complete',
+        sender: 'ai'
+      });
+
+      await delay(600);
+
+      addMessage({
+        type: 'agent_result',
+        text: `Recommended: ${best.name}\n\n• Price: ₦${best._rate.toLocaleString()}/hr\n• Distance: ${best._distance.toFixed(1)}km away\n• Rating: ${(best.avg_rating || 4.7).toFixed(1)}★\n• Sabi Score: ${best.sabi_score || 0}\n\nI've highlighted them on the map. Tap the marker to view their full profile and book.`,
+        data: { worker: best },
+        actionType: 'show_map',
+        sender: 'ai'
+      });
+
+      // Clear highlight after some time
+      await delay(5000);
+      setHighlightedWorkerId(null);
+
     } catch (err) {
       await addAgentResult(`Sorry, I couldn't search for workers right now. Please try again.`);
     }

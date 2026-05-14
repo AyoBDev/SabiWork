@@ -38,7 +38,7 @@ export default function MapCanvas({ onMarkerClick }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
-  const { workers, mapCenter, mapZoom, setMapView } = useAppStore();
+  const { workers, mapCenter, mapZoom, setMapView, highlightedWorkerId } = useAppStore();
 
   // Initialize map once
   useEffect(() => {
@@ -131,6 +131,45 @@ export default function MapCanvas({ onMarkerClick }) {
       markersRef.current.push(marker);
     });
   }, [workers]);
+
+  // Highlight a specific marker when agent is evaluating
+  useEffect(() => {
+    if (!mapRef.current || !highlightedWorkerId) return;
+
+    markersRef.current.forEach((marker, idx) => {
+      const el = marker.getElement();
+      const worker = workers[idx];
+      if (!worker) return;
+
+      if (worker.id === highlightedWorkerId) {
+        el.style.transform = 'scale(1.4)';
+        el.style.zIndex = '999';
+        el.style.boxShadow = '0 0 0 4px rgba(124, 179, 66, 0.5), 0 4px 12px rgba(0,0,0,0.3)';
+        el.style.transition = 'transform 0.3s, box-shadow 0.3s';
+        // Pan map to this worker
+        const lngLat = marker.getLngLat();
+        mapRef.current.easeTo({ center: lngLat, duration: 600 });
+      } else {
+        el.style.transform = 'scale(0.8)';
+        el.style.zIndex = '1';
+        el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        el.style.opacity = '0.5';
+        el.style.transition = 'transform 0.3s, box-shadow 0.3s, opacity 0.3s';
+      }
+    });
+
+    return () => {
+      // Reset all markers when highlight clears
+      markersRef.current.forEach((marker) => {
+        const el = marker.getElement();
+        el.style.transform = '';
+        el.style.zIndex = '';
+        el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        el.style.opacity = '1';
+        el.style.transition = 'transform 0.3s, box-shadow 0.3s, opacity 0.3s';
+      });
+    };
+  }, [highlightedWorkerId, workers]);
 
   return (
     <div

@@ -49,6 +49,10 @@ const useAppStore = create((set, get) => ({
   activeJob: null,
   setActiveJob: (job) => set({ activeJob: job }),
 
+  // Agent highlighting (for animated marker evaluation)
+  highlightedWorkerId: null,
+  setHighlightedWorkerId: (id) => set({ highlightedWorkerId: id }),
+
   // Loading states
   loading: false,
   setLoading: (loading) => set({ loading })
