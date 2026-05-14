@@ -8,6 +8,7 @@ import PulsePage from './pages/PulsePage';
 import LocationCapture from './pages/LocationCapture';
 import InvestPage from './pages/InvestPage';
 import InvestDiscoveryPage from './pages/InvestDiscoveryPage';
+import CreateRoundPage from './pages/CreateRoundPage';
 import PublicProfilePage from './pages/PublicProfilePage';
 import AuthPage from './pages/AuthPage';
 import BottomNav from './components/ui/BottomNav';
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/pulse" element={<PulsePage />} />
         <Route path="/invest" element={<InvestDiscoveryPage />} />
+        <Route path="/invest/create" element={<CreateRoundPage />} />
         <Route path="/invest/:roundId" element={<InvestPage />} />
         <Route path="/p/:userId" element={<PublicProfilePage />} />
         <Route path="/onboard" element={<OnboardPage />} />
