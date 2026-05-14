@@ -12,6 +12,12 @@ function getTabsForRole(role) {
         { path: '/profile', label: 'Profile', icon: ProfileIcon }
       ];
     case 'trader':
+      return [
+        { path: '/', label: 'Home', icon: HomeIcon },
+        { path: '/pulse', label: 'Inventory', icon: InventoryIcon },
+        { path: '/wallet', label: 'Wallet', icon: WalletIcon },
+        { path: '/profile', label: 'Profile', icon: ProfileIcon }
+      ];
     case 'seeker':
       return [
         { path: '/', label: 'Home', icon: HomeIcon },
@@ -83,6 +89,16 @@ function PulseIcon({ active }) {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
       <polyline points="4 18 8 14 12 16 16 10 20 6" className={active ? 'text-sabi-green' : ''} />
       {active && <circle cx="20" cy="6" r="1.5" fill="currentColor" stroke="none" />}
+    </svg>
+  );
+}
+
+function InventoryIcon({ active }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 8V21H3V8" />
+      <path d="M1 3h22v5H1z" />
+      <path d="M10 12h4" stroke={active ? 'white' : 'currentColor'} strokeWidth="1.8" />
     </svg>
   );
 }

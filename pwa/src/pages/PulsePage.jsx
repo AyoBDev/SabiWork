@@ -23,6 +23,16 @@ export default function PulsePage() {
     primary_trade: 'plumbing'
   };
 
+  if (role === 'trader') {
+    return (
+      <div className="h-full pb-14 overflow-y-auto">
+        <div className="p-4">
+          <TraderPulse user={demoUser} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full pb-14 overflow-y-auto">
       {/* Header */}
@@ -34,7 +44,6 @@ export default function PulsePage() {
       <div className="p-4">
         {role === 'buyer' && <BuyerPulse user={demoUser} />}
         {role === 'worker' && <WorkerPulse user={demoUser} />}
-        {role === 'trader' && <TraderPulse user={demoUser} />}
         {role === 'seeker' && <SeekerPulse user={demoUser} />}
       </div>
     </div>
