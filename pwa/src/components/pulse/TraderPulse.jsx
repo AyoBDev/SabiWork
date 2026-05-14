@@ -17,8 +17,8 @@ function getStockStatus(stock, maxStock) {
 }
 
 export default function TraderPulse({ user }) {
-  const setChatOpen = useAppStore((s) => s.setChatOpen);
   const [items] = useState(DEMO_ITEMS);
+  const [showLogSale, setShowLogSale] = useState(false);
 
   const totalItems = items.length;
   const lowStockItems = items.filter(i => getStockStatus(i.stock, i.maxStock).label !== 'Good');
@@ -27,7 +27,7 @@ export default function TraderPulse({ user }) {
   return (
     <div className="-m-4 -mt-[60px]">
       {/* Green gradient header */}
-      <div className="bg-gradient-to-br from-sabi-green to-green-700 px-5 pt-14 pb-5 rounded-b-3xl">
+      <div className="bg-gradient-to-br from-sabi-green to-green-700 px-5 pb-5 rounded-b-3xl" style={{ paddingTop: 'max(3.5rem, calc(env(safe-area-inset-top) + 1.5rem))' }}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-white">Hello, {user?.name?.split(' ')[0] || 'Trader'}</h1>
@@ -66,7 +66,7 @@ export default function TraderPulse({ user }) {
           </div>
 
           <button
-            onClick={() => setChatOpen(true)}
+            onClick={() => setShowLogSale(true)}
             className="ml-auto flex items-center gap-1.5 bg-white rounded-xl px-4 py-2.5 shadow-sm"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1B7A3D" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -99,6 +99,9 @@ export default function TraderPulse({ user }) {
           ))}
         </div>
       </div>
+
+      {/* Log Sale Sheet */}
+      <LogSaleSheet open={showLogSale} onClose={() => setShowLogSale(false)} items={items} />
     </div>
   );
 }
@@ -148,5 +151,130 @@ function SaleItem({ item }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function LogSaleSheet({ open, onClose, items }) {
+  const [item, setItem] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [amount, setAmount] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!item || !quantity || !amount) return;
+
+    setSubmitting(true);
+    setTimeout(() => {
+      setSubmitting(false);
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setItem('');
+        setQuantity('');
+        setAmount('');
+        onClose();
+      }, 1500);
+    }, 800);
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className={`fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-[201] bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out ${
+          open ? 'translate-y-0' : 'translate-y-full'
+        }`}
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
+        {/* Handle */}
+        <div className="flex items-center justify-center pt-3 pb-1">
+          <div className="w-12 h-1.5 rounded-full bg-gray-200" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-warm-border/60">
+          <h2 className="text-lg font-bold text-warm-text">Log a Sale</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-warm-bg hover:bg-warm-border transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+          {/* Item select */}
+          <div>
+            <label className="text-xs font-medium text-warm-muted mb-1.5 block">Item</label>
+            <select
+              value={item}
+              onChange={(e) => setItem(e.target.value)}
+              className="w-full h-12 px-4 rounded-xl border border-warm-border bg-warm-bg text-sm text-warm-text focus:outline-none focus:ring-2 focus:ring-sabi-green/30 focus:border-sabi-green"
+            >
+              <option value="">Select an item</option>
+              {items.map((i) => (
+                <option key={i.id} value={i.name}>{i.name}</option>
+              ))}
+              <option value="other">Other (new item)</option>
+            </select>
+          </div>
+
+          {/* Quantity */}
+          <div>
+            <label className="text-xs font-medium text-warm-muted mb-1.5 block">Quantity sold</label>
+            <input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="e.g. 3"
+              className="w-full h-12 px-4 rounded-xl border border-warm-border bg-warm-bg text-sm text-warm-text focus:outline-none focus:ring-2 focus:ring-sabi-green/30 focus:border-sabi-green"
+            />
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label className="text-xs font-medium text-warm-muted mb-1.5 block">Total amount (₦)</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="e.g. 75000"
+              className="w-full h-12 px-4 rounded-xl border border-warm-border bg-warm-bg text-sm text-warm-text focus:outline-none focus:ring-2 focus:ring-sabi-green/30 focus:border-sabi-green"
+            />
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={!item || !quantity || !amount || submitting}
+            className="w-full h-12 rounded-xl bg-sabi-green text-white font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            {submitting ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : success ? (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                Sale Logged!
+              </>
+            ) : (
+              'Log Sale'
+            )}
+          </button>
+        </form>
+      </div>
+    </>
   );
 }
