@@ -1,5 +1,6 @@
 // pwa/src/pages/ProfilePage.jsx
-import { Star, ChevronRight, Pencil, LogOut } from 'lucide-react';
+import { Star, ChevronRight, Pencil, LogOut, Share2 } from 'lucide-react';
+import { useState } from 'react';
 import useAppStore from '../stores/appStore';
 
 const MENU_ITEMS = [
@@ -14,6 +15,7 @@ const MENU_ITEMS = [
 
 export default function ProfilePage() {
   const { user, logout } = useAppStore();
+  const [shareText, setShareText] = useState('Share Profile');
 
   const name = user?.name || 'User';
   const initial = name.charAt(0).toUpperCase();
@@ -21,6 +23,33 @@ export default function ProfilePage() {
   const sabiScore = user?.sabi_score || 0;
   const trade = user?.primary_trade || '';
   const areas = user?.service_areas || [];
+
+  const handleShareProfile = async () => {
+    const shareUrl = `${window.location.origin}/p/${user?.id}`;
+    const shareData = {
+      title: `${name} on SabiWork`,
+      text: `Check out ${name}'s profile on SabiWork`,
+      url: shareUrl
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Share failed:', err);
+        }
+      }
+    } else if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareText('Copied!');
+        setTimeout(() => setShareText('Share Profile'), 2000);
+      } catch (err) {
+        console.error('Copy failed:', err);
+      }
+    }
+  };
 
   return (
     <div className="h-full pb-16 overflow-y-auto bg-white">
@@ -58,6 +87,15 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Share Profile Button */}
+        <button
+          onClick={handleShareProfile}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full border border-gray-100 mt-3 hover:bg-gray-100 transition-colors"
+        >
+          <Share2 className="w-3.5 h-3.5 text-gray-600" />
+          <span className="text-sm font-medium text-gray-700">{shareText}</span>
+        </button>
       </div>
 
       {/* My Scores */}

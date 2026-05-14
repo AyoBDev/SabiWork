@@ -1,16 +1,41 @@
 // pwa/src/components/ui/BottomNav.jsx
 import { useLocation, useNavigate } from 'react-router-dom';
+import useAppStore from '../../stores/appStore';
 
-const tabs = [
-  { path: '/', label: 'Home', icon: HomeIcon },
-  { path: '/jobs', label: 'My Jobs', icon: JobsIcon },
-  { path: '/wallet', label: 'Wallet', icon: WalletIcon },
-  { path: '/profile', label: 'Profile', icon: ProfileIcon }
-];
+function getTabsForRole(role) {
+  switch (role) {
+    case 'buyer':
+      return [
+        { path: '/', label: 'Home', icon: HomeIcon },
+        { path: '/jobs', label: 'Bookings', icon: JobsIcon },
+        { path: '/wallet', label: 'Wallet', icon: WalletIcon },
+        { path: '/profile', label: 'Profile', icon: ProfileIcon }
+      ];
+    case 'trader':
+    case 'seeker':
+      return [
+        { path: '/', label: 'Home', icon: HomeIcon },
+        { path: '/pulse', label: 'Pulse', icon: PulseIcon },
+        { path: '/wallet', label: 'Wallet', icon: WalletIcon },
+        { path: '/profile', label: 'Profile', icon: ProfileIcon }
+      ];
+    case 'worker':
+    default:
+      return [
+        { path: '/', label: 'Home', icon: HomeIcon },
+        { path: '/jobs', label: 'Jobs', icon: JobsIcon },
+        { path: '/wallet', label: 'Wallet', icon: WalletIcon },
+        { path: '/profile', label: 'Profile', icon: ProfileIcon }
+      ];
+  }
+}
 
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const user = useAppStore((s) => s.user);
+  const role = user?.role || 'worker';
+  const tabs = getTabsForRole(role);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
@@ -49,6 +74,15 @@ function JobsIcon({ active }) {
     <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="7" width="20" height="14" rx="2" />
       <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" stroke={active ? 'white' : 'currentColor'} strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function PulseIcon({ active }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="4 18 8 14 12 16 16 10 20 6" className={active ? 'text-sabi-green' : ''} />
+      {active && <circle cx="20" cy="6" r="1.5" fill="currentColor" stroke="none" />}
     </svg>
   );
 }

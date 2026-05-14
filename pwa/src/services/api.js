@@ -89,7 +89,16 @@ export const api = {
   // Traders
   logSale: (data) =>
     request('/traders/sales', { method: 'POST', body: JSON.stringify(data) }),
-  getTraderReport: (id) => request(`/traders/${id}/report`)
+  getTraderReport: (id) => request(`/traders/${id}/report`),
+
+  // Invest
+  getOpenRounds: () => request('/invest/rounds'),
+  getMyInvestments: (phone) => request(`/invest/my-investments?phone=${phone}`),
+  getRoundStatus: (roundId, phone) => request(`/invest/rounds/${roundId}/status?phone=${phone}`),
+
+  // Public profiles
+  getPublicWorkerProfile: (id) => request(`/workers/${id}/public`),
+  getPublicTraderProfile: (id) => request(`/traders/${id}/public`)
 };
 
 export default api;

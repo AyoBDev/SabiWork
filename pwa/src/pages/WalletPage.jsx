@@ -1,6 +1,8 @@
 // pwa/src/pages/WalletPage.jsx
 import { useState } from 'react';
-import { Send, ArrowUp, PlusCircle, Clock, Bookmark, Lock, Bell, ArrowDown, Home } from 'lucide-react';
+import { Send, ArrowUp, PlusCircle, Clock, Bookmark, Lock, Bell, ArrowDown, Home, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import useAppStore from '../stores/appStore';
 import SendSheet from '../components/wallet/SendSheet';
 
 const MOCK_TRANSACTIONS = [
@@ -69,6 +71,59 @@ const SPENDING_DATA = [
 export default function WalletPage() {
   const [sendOpen, setSendOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAppStore();
+
+  // Role-based configuration
+  const getRoleConfig = () => {
+    const role = user?.role || 'seeker';
+
+    const configs = {
+      buyer: {
+        headerTitle: 'My Wallet',
+        headerSubtitle: 'Manage Payments, escrow and job Transactions',
+        statLabel: 'Total Spent',
+        actions: [
+          { label: 'Pay for Service', icon: 'send', action: () => setSendOpen(true) },
+          { label: 'Add Money', icon: 'add', action: null },
+          { label: 'History', icon: 'history', action: null }
+        ]
+      },
+      worker: {
+        headerTitle: 'My Earnings',
+        headerSubtitle: 'Track your earnings and manage withdrawals',
+        statLabel: 'Total Earned',
+        actions: [
+          { label: 'Withdraw', icon: 'withdraw', action: () => setWithdrawOpen(true) },
+          { label: 'Send', icon: 'send', action: () => setSendOpen(true) },
+          { label: 'History', icon: 'history', action: null }
+        ]
+      },
+      trader: {
+        headerTitle: 'Business Wallet',
+        headerSubtitle: 'Manage your business finances and investments',
+        statLabel: 'Revenue',
+        actions: [
+          { label: 'Withdraw', icon: 'withdraw', action: () => setWithdrawOpen(true) },
+          { label: 'Create Round', icon: 'add', action: () => navigate('/invest/create') },
+          { label: 'History', icon: 'history', action: null }
+        ]
+      },
+      seeker: {
+        headerTitle: 'My Wallet',
+        headerSubtitle: 'Manage your transactions',
+        statLabel: 'Balance',
+        actions: [
+          { label: 'Withdraw', icon: 'withdraw', action: () => setWithdrawOpen(true) },
+          { label: 'History', icon: 'history', action: null }
+        ]
+      }
+    };
+
+    return configs[role] || configs.seeker;
+  };
+
+  const roleConfig = getRoleConfig();
 
   return (
     <div className="h-full pb-16 overflow-y-auto bg-white">
@@ -76,8 +131,8 @@ export default function WalletPage() {
       <div className="px-5 pt-14 pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Wallet</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Manage Payments, escrow and job Transactions</p>
+            <h1 className="text-2xl font-bold text-gray-900">{roleConfig.headerTitle}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">{roleConfig.headerSubtitle}</p>
           </div>
           <button className="w-10 h-10 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center">
             <Bell className="w-[18px] h-[18px] text-gray-700" />
@@ -115,13 +170,7 @@ export default function WalletPage() {
 
       {/* Action buttons */}
       <div className="flex justify-around px-5 py-5">
-        {[
-          { label: 'Send', icon: 'send', action: () => setSendOpen(true) },
-          { label: 'Withdraw', icon: 'withdraw', action: () => setWithdrawOpen(true) },
-          { label: 'Add Money', icon: 'add', action: null },
-          { label: 'History', icon: 'history', action: null },
-          { label: 'Savings', icon: 'savings', action: null }
-        ].map((item) => (
+        {roleConfig.actions.map((item) => (
           <button key={item.label} onClick={item.action} className="flex flex-col items-center gap-1.5">
             <div className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center bg-white">
               <ActionIcon type={item.icon} />
@@ -188,6 +237,28 @@ export default function WalletPage() {
           ))}
         </div>
       </div>
+
+      {/* Invest & Earn Card */}
+      <div className="px-5 mt-6 pb-4">
+        <button
+          onClick={() => navigate('/invest')}
+          className="w-full rounded-2xl bg-gradient-to-r from-sabi-green/5 to-sabi-green/10 border border-sabi-green/20 p-5 flex items-center gap-4 hover:from-sabi-green/10 hover:to-sabi-green/15 transition-colors"
+        >
+          <div className="w-12 h-12 rounded-full bg-sabi-green/20 flex items-center justify-center shrink-0">
+            <TrendingUp className="w-6 h-6 text-sabi-green" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-base font-bold text-gray-900 mb-0.5">Invest & Earn</p>
+            <p className="text-sm text-gray-600 mb-1">Invest in verified traders</p>
+            <p className="text-xs text-gray-500">Earn returns from local businesses</p>
+          </div>
+          <div className="flex items-center gap-1 text-sabi-green font-semibold text-sm shrink-0">
+            <span>Browse Rounds</span>
+            <span>→</span>
+          </div>
+        </button>
+      </div>
+
       {/* Send/Withdraw Sheets */}
       <SendSheet open={sendOpen} onClose={() => setSendOpen(false)} type="send" />
       <SendSheet open={withdrawOpen} onClose={() => setWithdrawOpen(false)} type="withdraw" />

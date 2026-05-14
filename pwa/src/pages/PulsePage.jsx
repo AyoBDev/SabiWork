@@ -3,6 +3,7 @@ import useAppStore from '../stores/appStore';
 import WorkerPulse from '../components/pulse/WorkerPulse';
 import TraderPulse from '../components/pulse/TraderPulse';
 import SeekerPulse from '../components/pulse/SeekerPulse';
+import BuyerPulse from '../components/pulse/BuyerPulse';
 
 export default function PulsePage() {
   const { user } = useAppStore();
@@ -31,6 +32,7 @@ export default function PulsePage() {
       </div>
 
       <div className="p-4">
+        {role === 'buyer' && <BuyerPulse user={demoUser} />}
         {role === 'worker' && <WorkerPulse user={demoUser} />}
         {role === 'trader' && <TraderPulse user={demoUser} />}
         {role === 'seeker' && <SeekerPulse user={demoUser} />}

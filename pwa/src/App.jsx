@@ -7,6 +7,8 @@ import ProfilePage from './pages/ProfilePage';
 import PulsePage from './pages/PulsePage';
 import LocationCapture from './pages/LocationCapture';
 import InvestPage from './pages/InvestPage';
+import InvestDiscoveryPage from './pages/InvestDiscoveryPage';
+import PublicProfilePage from './pages/PublicProfilePage';
 import AuthPage from './pages/AuthPage';
 import BottomNav from './components/ui/BottomNav';
 import ChatSheet from './components/chat/ChatSheet';
@@ -21,12 +23,13 @@ export default function App() {
   const isAgent = user?.role === 'agent';
 
   // Public routes (no auth required)
-  // LocationCapture is accessed via QR code — must remain public
+  // LocationCapture and PublicProfile are accessed via shared links — must remain public
   if (!user) {
     return (
       <div className="h-screen w-screen overflow-hidden bg-white relative">
         <Routes>
           <Route path="/join/:phone" element={<LocationCapture />} />
+          <Route path="/p/:userId" element={<PublicProfilePage />} />
           <Route path="*" element={<AuthPage />} />
         </Routes>
       </div>
@@ -41,10 +44,12 @@ export default function App() {
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/pulse" element={<PulsePage />} />
+        <Route path="/invest" element={<InvestDiscoveryPage />} />
+        <Route path="/invest/:roundId" element={<InvestPage />} />
+        <Route path="/p/:userId" element={<PublicProfilePage />} />
         <Route path="/onboard" element={<OnboardPage />} />
         <Route path="/join/:phone" element={<LocationCapture />} />
         <Route path="/stats" element={<AgentStats />} />
-        <Route path="/invest/:roundId" element={<InvestPage />} />
       </Routes>
       <ChatSheet />
       <AIButton />
