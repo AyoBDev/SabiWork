@@ -100,10 +100,10 @@ export default function WorkerSheet({ worker, onClose, onBook }) {
         {/* Sabi Score section */}
         <div className="mx-5 mb-5 p-4 bg-gray-50 rounded-2xl">
           <p className="text-xs text-gray-500 mb-1">Sabi Score</p>
-          <p className="text-2xl font-bold" style={{ color: tier.color }}>
-            {sabiScore} <span className="text-base font-normal text-gray-400">/ 100</span>
-          </p>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2">
+            <p className="text-2xl font-bold" style={{ color: tier.color }}>
+              {sabiScore} <span className="text-base font-normal text-gray-400">/ 100</span>
+            </p>
             <span
               className="inline-flex items-center justify-center w-7 h-7 rounded-full"
               style={{ backgroundColor: tier.color }}
