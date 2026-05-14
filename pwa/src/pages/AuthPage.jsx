@@ -217,7 +217,7 @@ export default function AuthPage() {
         role,
         area: coords ? 'lagos' : 'surulere',
         trust_score: 0,
-        sabi_score: 0
+        sabi_score: Math.floor(Math.random() * 101)
       };
       localStorage.setItem('sabiwork_user', JSON.stringify(session));
       setUser(session);
@@ -268,7 +268,7 @@ export default function AuthPage() {
         primary_trade: onboardForm.primary_trade,
         service_areas: onboardForm.service_areas,
         trust_score: result.trust_score || 0,
-        sabi_score: 0,
+        sabi_score: result.sabi_score || Math.floor(Math.random() * 101),
         account_number: onboardForm.account_number,
         bank_code: onboardForm.bank_code,
         role: 'worker'

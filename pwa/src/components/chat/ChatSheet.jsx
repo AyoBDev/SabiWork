@@ -3,12 +3,13 @@ import { useRef, useEffect } from 'react';
 import useAppStore from '../../stores/appStore';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import { useChat } from '../../hooks/useChat';
+import { useAgentChat } from '../../hooks/useAgentChat';
 
 const QUICK_ACTIONS = [
-  { label: 'Find a plumber', msg: 'I need a plumber in Surulere' },
-  { label: 'Log a sale', msg: 'sold 5 bags rice 75000' },
-  { label: "What's in demand?", msg: 'what trades are in demand near me?' },
+  { label: 'Find a plumber', msg: 'Find me a plumber nearby' },
+  { label: 'Log a sale', msg: 'I sold 5 bags of rice for 75000' },
+  { label: 'Create a round', msg: 'Create an investment round' },
+  { label: 'My Sabi Score', msg: 'What is my Sabi Score?' },
 ];
 
 export default function ChatSheet() {
@@ -75,7 +76,7 @@ export default function ChatSheet() {
                 </svg>
               </div>
               <p className="text-lg font-bold text-warm-text mb-1">Wetin you need?</p>
-              <p className="text-sm text-warm-muted mb-6">I can help you find workers, log sales, or check demand in your area.</p>
+              <p className="text-sm text-warm-muted mb-6">Tell me what you need — voice or text. I'll find workers, log sales, create rounds, and more.</p>
 
               {/* Quick action chips */}
               <div className="flex flex-wrap gap-2 justify-center">
@@ -91,16 +92,14 @@ export default function ChatSheet() {
         </div>
 
         {/* Input */}
-        <div className="pb-16">
-          <ChatInput />
-        </div>
+        <ChatInput />
       </div>
     </div>
   );
 }
 
 function QuickChip({ label, msg }) {
-  const { send } = useChat();
+  const { send } = useAgentChat();
 
   return (
     <button

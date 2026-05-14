@@ -1,5 +1,7 @@
 // pwa/src/components/chat/ChatMessage.jsx
 import ChatBubble from './ChatBubble';
+import AgentStepMessage from './AgentStepMessage';
+import AgentResultMessage from './AgentResultMessage';
 import WorkerCard from '../cards/WorkerCard';
 import PaymentCard from '../cards/PaymentCard';
 import TrackingCard from '../cards/TrackingCard';
@@ -11,6 +13,10 @@ export default function ChatMessage({ message }) {
   switch (message.type) {
     case 'text':
       return <ChatBubble text={message.text} sender={message.sender} />;
+    case 'agent_step':
+      return <AgentStepMessage message={message} />;
+    case 'agent_result':
+      return <AgentResultMessage message={message} />;
     case 'worker_card':
       return <WorkerCard worker={message.data} />;
     case 'payment_card':

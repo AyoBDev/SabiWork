@@ -26,6 +26,7 @@ export default function CreateRoundPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: user?.phone,
+          name: user?.name,
           target_amount: parseInt(targetAmount) * 100, // Convert to kobo
           interest_rate: parseFloat(interestRate) / 100,
           repayment_split: parseFloat(repaymentSplit) / 100

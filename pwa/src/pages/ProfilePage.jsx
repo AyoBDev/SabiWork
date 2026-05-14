@@ -42,37 +42,19 @@ export default function ProfilePage() {
     const profileId = user?.phone || user?.id;
     const shareUrl = `${window.location.origin}/p/${profileId}`;
 
-    const copyToClipboard = () => {
-      const textarea = document.createElement('textarea');
-      textarea.value = shareUrl;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      setShareText('Copied!');
-      setTimeout(() => setShareText('Share Profile'), 2000);
-    };
-
-    if (navigator.share) {
-      navigator.share({
-        title: `${name} on SabiWork`,
-        text: `Check out ${name}'s profile on SabiWork`,
-        url: shareUrl
-      }).catch(() => {
-        copyToClipboard();
-      });
-    } else if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        setShareText('Copied!');
-        setTimeout(() => setShareText('Share Profile'), 2000);
-      }).catch(() => {
-        copyToClipboard();
-      });
-    } else {
-      copyToClipboard();
-    }
+    // Always use execCommand as primary - works on all browsers without HTTPS
+    const textarea = document.createElement('textarea');
+    textarea.value = shareUrl;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, 99999); // For mobile
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    setShareText('Link Copied!');
+    setTimeout(() => setShareText('Share Profile'), 2500);
   };
 
   return (

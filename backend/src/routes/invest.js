@@ -42,8 +42,22 @@ router.post('/rounds', async (req, res) => {
       }
     }
 
+    // Auto-register trader if they signed up via lightweight onboarding (no DB record yet)
+    if (!trader && phone) {
+      const [newTrader] = await knex('traders').insert({
+        name: req.body.name || 'Trader',
+        phone,
+        business_type: 'general',
+        area: 'Lagos',
+        sabi_score: 0,
+        total_logged_sales: 0,
+        total_logged_revenue: 0
+      }).returning('*');
+      trader = newTrader;
+    }
+
     if (!trader) {
-      return res.status(404).json({ error: 'Trader not found' });
+      return res.status(404).json({ error: 'Trader not found. Please provide a phone number.' });
     }
 
     // Validate SabiScore >= 30
