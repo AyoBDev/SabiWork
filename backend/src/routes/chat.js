@@ -118,10 +118,15 @@ router.post('/', async (req, res) => {
       });
     }
 
+    const responseData = handlerResult.data || null;
+    if (responseData && handlerResult.alternatives) {
+      responseData.alternatives = handlerResult.alternatives;
+    }
+
     return res.status(200).json({
       type: handlerResult.type || 'text',
       message: naturalMessage,
-      data: handlerResult.data || null,
+      data: responseData,
       steps,
       suggestions,
       intent,
