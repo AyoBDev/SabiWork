@@ -65,8 +65,8 @@ export default function ChatInput() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-center gap-2 px-4 py-3 border-t border-warm-border/60 bg-white"
-      style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+      className="flex items-center gap-2 px-4 py-3 border-t border-warm-border/60 bg-white shrink-0"
+      style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
     >
       {/* Voice button */}
       <button

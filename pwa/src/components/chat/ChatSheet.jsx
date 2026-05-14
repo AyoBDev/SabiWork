@@ -24,21 +24,18 @@ export default function ChatSheet() {
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out ${
+      className={`fixed inset-0 z-[100] transition-transform duration-300 ease-out ${
         chatOpen ? 'translate-y-0' : 'translate-y-full'
       }`}
-      style={{ height: '75vh' }}
     >
       {/* Backdrop */}
-      {chatOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm -z-10"
-          onClick={() => setChatOpen(false)}
-        />
-      )}
+      <div
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        onClick={() => setChatOpen(false)}
+      />
 
-      {/* Sheet */}
-      <div className="h-full bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden">
+      {/* Sheet — positioned from top with margin */}
+      <div className="absolute inset-x-0 bottom-0 top-[8vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden">
         {/* Handle */}
         <div className="flex items-center justify-center pt-3 pb-1">
           <div className="w-12 h-1.5 rounded-full bg-warm-border" />
@@ -91,7 +88,7 @@ export default function ChatSheet() {
           ))}
         </div>
 
-        {/* Input */}
+        {/* Input — always visible at bottom */}
         <ChatInput />
       </div>
     </div>
