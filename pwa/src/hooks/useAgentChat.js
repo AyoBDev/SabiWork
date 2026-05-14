@@ -72,6 +72,7 @@ export function useAgentChat() {
   const setWorkers = useAppStore((s) => s.setWorkers);
   const setChatOpen = useAppStore((s) => s.setChatOpen);
   const setHighlightedWorkerId = useAppStore((s) => s.setHighlightedWorkerId);
+  const setAgentSelectedWorker = useAppStore((s) => s.setAgentSelectedWorker);
 
   async function addAgentStep(text, stepType = 'thinking') {
     addMessage({
@@ -209,19 +210,20 @@ export function useAgentChat() {
         sender: 'ai'
       });
 
-      await delay(800);
+      await delay(1000);
 
       addMessage({
         type: 'agent_result',
-        text: `Recommended: ${best.name || 'Worker'}\n\n• Price: ₦${best._rate.toLocaleString()}/hr\n• Distance: ${best._distance.toFixed(1)}km away\n• Rating: ${(best.avg_rating || 4.7).toFixed(1)}★\n• Sabi Score: ${best.sabi_score || 0}\n\nI've highlighted them on the map. Tap the marker to view their full profile and book.`,
+        text: `Recommended: ${best.name || 'Worker'}\n\n• Price: ₦${best._rate.toLocaleString()}/hr\n• Distance: ${best._distance.toFixed(1)}km away\n• Rating: ${(best.avg_rating || 4.7).toFixed(1)}★\n• Sabi Score: ${best.sabi_score || 0}`,
         data: { worker: best },
         actionType: 'show_map',
         sender: 'ai'
       });
 
-      // Clear highlight after some time
-      await delay(8000);
+      // Open the worker sheet for the best match
+      await delay(1200);
       setHighlightedWorkerId(null);
+      setAgentSelectedWorker(best);
 
     } catch (err) {
       await addAgentResult(`Sorry, I couldn't search for workers right now. Please try again.`);

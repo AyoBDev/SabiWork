@@ -8,7 +8,7 @@ import useAppStore from '../stores/appStore';
 import api from '../services/api';
 
 export default function MapPage() {
-  const { setWorkers, setLoading, setChatOpen } = useAppStore();
+  const { setWorkers, setLoading, setChatOpen, agentSelectedWorker, setAgentSelectedWorker } = useAppStore();
   const [selectedWorker, setSelectedWorker] = useState(null);
 
   useEffect(() => {
@@ -25,6 +25,14 @@ export default function MapPage() {
     }
     loadWorkers();
   }, []);
+
+  // Listen for agent-selected worker
+  useEffect(() => {
+    if (agentSelectedWorker) {
+      setSelectedWorker(agentSelectedWorker);
+      setAgentSelectedWorker(null);
+    }
+  }, [agentSelectedWorker]);
 
   function handleBook(worker) {
     setSelectedWorker(null);

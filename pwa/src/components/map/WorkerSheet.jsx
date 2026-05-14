@@ -43,9 +43,16 @@ export default function WorkerSheet({ worker, onClose, onBook }) {
 
       {/* Sheet */}
       <div className="relative w-full bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto pointer-events-auto animate-slide-up">
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-2 sticky top-0 bg-white rounded-t-3xl z-10">
+        {/* Drag handle + close button */}
+        <div className="flex items-center justify-between pt-3 pb-2 px-5 sticky top-0 bg-white rounded-t-3xl z-10">
+          <div className="w-9" />
           <div className="w-10 h-1.5 rounded-full bg-gray-300" />
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
+          >
+            <X className="w-4 h-4 text-gray-600" />
+          </button>
         </div>
 
         {/* Worker header */}

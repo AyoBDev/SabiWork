@@ -40,10 +40,14 @@ const useAppStore = create((set, get) => ({
 
   // Chat state
   chatOpen: false,
-  setChatOpen: (open) => set({ chatOpen: open }),
+  setChatOpen: (open) => set({ chatOpen: open, ...(open ? { unreadCount: 0 } : {}) }),
   messages: [],
-  addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+  addMessage: (msg) => set((s) => ({
+    messages: [...s.messages, msg],
+    unreadCount: s.chatOpen ? 0 : (s.unreadCount || 0) + (msg.sender === 'ai' ? 1 : 0)
+  })),
   clearMessages: () => set({ messages: [] }),
+  unreadCount: 0,
 
   // Active job tracking
   activeJob: null,
@@ -52,6 +56,10 @@ const useAppStore = create((set, get) => ({
   // Agent highlighting (for animated marker evaluation)
   highlightedWorkerId: null,
   setHighlightedWorkerId: (id) => set({ highlightedWorkerId: id }),
+
+  // Agent-selected worker (auto-opens WorkerSheet)
+  agentSelectedWorker: null,
+  setAgentSelectedWorker: (worker) => set({ agentSelectedWorker: worker }),
 
   // Loading states
   loading: false,
