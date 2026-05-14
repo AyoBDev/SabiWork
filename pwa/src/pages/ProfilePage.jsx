@@ -1,7 +1,21 @@
 // pwa/src/pages/ProfilePage.jsx
-import { Star, ChevronRight, Pencil, LogOut, Share2 } from 'lucide-react';
+import { ChevronRight, Pencil, LogOut, Share2 } from 'lucide-react';
 import { useState } from 'react';
 import useAppStore from '../stores/appStore';
+
+function getSabiTier(score) {
+  if (score >= 70) return { label: 'Full Financial Suite', color: '#F9A825', badge: 'trophy' };
+  if (score >= 50) return { label: 'Microloan Eligible', color: '#1565C0', badge: 'trending-up' };
+  if (score >= 30) return { label: 'Savings Unlocked', color: '#1B7A3D', badge: 'shield-check' };
+  return { label: 'Building Score', color: '#81C784', badge: 'seedling' };
+}
+
+const TIER_BADGE_SVGS = {
+  trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  'trending-up': '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  'shield-check': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+  seedling: '<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>'
+};
 
 const MENU_ITEMS = [
   { label: 'Personal Info' },
@@ -19,13 +33,14 @@ export default function ProfilePage() {
 
   const name = user?.name || 'User';
   const initial = name.charAt(0).toUpperCase();
-  const trustScore = user?.trust_score || 0;
   const sabiScore = user?.sabi_score || 0;
+  const tier = getSabiTier(sabiScore);
   const trade = user?.primary_trade || '';
   const areas = user?.service_areas || [];
 
   const handleShareProfile = async () => {
-    const shareUrl = `${window.location.origin}/p/${user?.id}`;
+    const profileId = user?.phone || user?.id;
+    const shareUrl = `${window.location.origin}/p/${profileId}`;
     const shareData = {
       title: `${name} on SabiWork`,
       text: `Check out ${name}'s profile on SabiWork`,
@@ -35,19 +50,29 @@ export default function ProfilePage() {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
+        return;
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          console.error('Share failed:', err);
-        }
+        if (err.name === 'AbortError') return;
       }
-    } else if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        setShareText('Copied!');
-        setTimeout(() => setShareText('Share Profile'), 2000);
-      } catch (err) {
-        console.error('Copy failed:', err);
-      }
+    }
+
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareText('Copied!');
+      setTimeout(() => setShareText('Share Profile'), 2000);
+    } catch (err) {
+      // Final fallback for browsers that block clipboard
+      const textarea = document.createElement('textarea');
+      textarea.value = shareUrl;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setShareText('Copied!');
+      setTimeout(() => setShareText('Share Profile'), 2000);
     }
   };
 
@@ -76,9 +101,14 @@ export default function ProfilePage() {
 
         {/* Badges */}
         <div className="flex items-center gap-3 mt-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-100">
-            <Star className="w-3.5 h-3.5 text-yellow-500" fill="#F9A825" />
-            <span className="text-sm font-medium text-gray-700">{(trustScore * 5).toFixed(1)} Rating</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border" style={{ borderColor: `${tier.color}40`, backgroundColor: `${tier.color}10` }}>
+            <span
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full"
+              style={{ backgroundColor: tier.color }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: TIER_BADGE_SVGS[tier.badge] }} />
+            </span>
+            <span className="text-sm font-medium" style={{ color: tier.color }}>Sabi {sabiScore}</span>
           </div>
           {user?.phone && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-100">
@@ -98,30 +128,36 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* My Scores */}
+      {/* Sabi Score */}
       <div className="px-5 mb-6">
-        <h3 className="text-base font-bold text-gray-900 mb-3">My Scores</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="border border-sabi-green/30 rounded-xl p-4 bg-sabi-green/5">
-            <p className="text-xs text-gray-500 mb-1">Trust Score</p>
-            <p className="text-2xl font-bold text-sabi-green">{Number(trustScore).toFixed(2)}</p>
-            <p className="text-xs text-gray-600 mt-0.5">
-              {trustScore >= 0.8 ? 'Elite' : trustScore >= 0.6 ? 'Verified' : trustScore >= 0.3 ? 'Trusted' : 'Emerging'}
-            </p>
-            <div className="w-full h-1.5 bg-gray-200 rounded-full mt-2">
-              <div className="h-full bg-sabi-green-dark rounded-full" style={{ width: `${trustScore * 100}%` }} />
+        <h3 className="text-base font-bold text-gray-900 mb-3">Sabi Score</h3>
+        <div className="border rounded-2xl p-5" style={{ borderColor: `${tier.color}30`, backgroundColor: `${tier.color}08` }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Your Score</p>
+              <div className="flex items-center gap-2">
+                <p className="text-3xl font-bold" style={{ color: tier.color }}>
+                  {sabiScore} <span className="text-base font-normal text-gray-400">/ 100</span>
+                </p>
+                <span
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full"
+                  style={{ backgroundColor: tier.color }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: TIER_BADGE_SVGS[tier.badge] }} />
+                </span>
+              </div>
             </div>
           </div>
-          <div className="border border-orange-200 rounded-xl p-4 bg-orange-50/50">
-            <p className="text-xs text-gray-500 mb-1">Sabi Score</p>
-            <p className="text-2xl font-bold text-orange-500">{sabiScore}</p>
-            <p className="text-xs text-gray-600 mt-0.5">
-              {sabiScore >= 50 ? 'Loan eligible' : `${50 - sabiScore} pts to loan`}
-            </p>
-            <div className="w-full h-1.5 bg-gray-200 rounded-full mt-2">
-              <div className="h-full bg-orange-400 rounded-full" style={{ width: `${sabiScore}%` }} />
-            </div>
+          <p className="text-sm font-medium mt-2" style={{ color: tier.color }}>{tier.label}</p>
+          <div className="w-full h-2 bg-gray-200 rounded-full mt-3 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${sabiScore}%`, backgroundColor: tier.color }}
+            />
           </div>
+          <p className="text-xs text-gray-500 mt-2">
+            {sabiScore >= 50 ? 'Microloan eligible' : `${50 - sabiScore} points to microloan eligibility`}
+          </p>
         </div>
       </div>
 
