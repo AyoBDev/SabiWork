@@ -29,12 +29,17 @@ router.post('/rounds', async (req, res) => {
       });
     }
 
-    // Find trader
+    // Find trader (prefer phone lookup since client-side IDs may not be valid UUIDs)
     let trader;
-    if (trader_id) {
-      trader = await knex('traders').where({ id: trader_id }).first();
-    } else {
+    if (phone) {
       trader = await knex('traders').where({ phone }).first();
+    }
+    if (!trader && trader_id) {
+      try {
+        trader = await knex('traders').where({ id: trader_id }).first();
+      } catch (_) {
+        // trader_id may not be a valid UUID (e.g. client-generated session ID)
+      }
     }
 
     if (!trader) {
