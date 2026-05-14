@@ -102,9 +102,8 @@ export default function MapCanvas({ onMarkerClick }) {
         width: 44px; height: 44px; border-radius: 50%;
         background: ${style.color};
         display: flex; align-items: center; justify-content: center;
-        cursor: pointer; transition: transform 0.2s;
+        cursor: pointer;
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        position: relative;
       `;
       el.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg>`;
 
@@ -116,18 +115,17 @@ export default function MapCanvas({ onMarkerClick }) {
           width: 12px; height: 12px; border-radius: 50%;
           background: #4CAF50; border: 2px solid white;
         `;
+        el.style.position = 'relative';
         el.appendChild(dot);
       }
 
-      el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
-      el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         onMarkerClick?.(worker);
       });
 
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([worker.location_lng, worker.location_lat])
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([parseFloat(worker.location_lng), parseFloat(worker.location_lat)])
         .addTo(mapRef.current);
 
       markersRef.current.push(marker);

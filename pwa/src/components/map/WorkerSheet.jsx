@@ -10,11 +10,18 @@ const MOCK_REVIEWS = [
 ];
 
 function getSabiTier(score) {
-  if (score >= 70) return { label: 'Full Financial Suite', color: '#F9A825' };
-  if (score >= 50) return { label: 'Microloan Eligible', color: '#1565C0' };
-  if (score >= 30) return { label: 'Savings Unlocked', color: '#1B7A3D' };
-  return { label: 'Building Score', color: '#81C784' };
+  if (score >= 70) return { label: 'Full Financial Suite', color: '#F9A825', badge: 'trophy' };
+  if (score >= 50) return { label: 'Microloan Eligible', color: '#1565C0', badge: 'trending-up' };
+  if (score >= 30) return { label: 'Savings Unlocked', color: '#1B7A3D', badge: 'shield-check' };
+  return { label: 'Building Score', color: '#81C784', badge: 'seedling' };
 }
+
+const TIER_BADGE_SVGS = {
+  trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  'trending-up': '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  'shield-check': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+  seedling: '<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>'
+};
 
 export default function WorkerSheet({ worker, onClose, onBook }) {
   if (!worker) return null;
@@ -96,7 +103,15 @@ export default function WorkerSheet({ worker, onClose, onBook }) {
           <p className="text-2xl font-bold" style={{ color: tier.color }}>
             {sabiScore} <span className="text-base font-normal text-gray-400">/ 100</span>
           </p>
-          <p className="text-sm text-gray-600 mt-0.5">{tier.label}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
+              style={{ backgroundColor: tier.color }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: TIER_BADGE_SVGS[tier.badge] }} />
+              {tier.label}
+            </span>
+          </div>
           <div className="w-full h-2 bg-gray-200 rounded-full mt-2.5 overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
