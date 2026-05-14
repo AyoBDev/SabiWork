@@ -23,6 +23,8 @@ export const backendAPI = {
   // Chat (AI matching)
   chat: (message, context) =>
     request('POST', '/api/chat', { message, ...context }),
+  chatWithAudio: (audioBase64, context) =>
+    request('POST', '/api/chat', { audio_base64: audioBase64, ...context }),
 
   // Workers
   lookupAccount: (data) =>

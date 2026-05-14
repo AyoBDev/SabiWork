@@ -1,8 +1,9 @@
 // whatsapp-bot/src/bot/connection.js
-import makeWASocket, { DisconnectReason, makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
+import makeWASocket, { DisconnectReason, makeCacheableSignalKeyStore, downloadMediaMessage } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import { getAuthState } from './authState.js';
 import { handleMessage } from './messageHandler.js';
+import { backendAPI } from '../services/api.js';
 
 const logger = pino({ level: 'silent' });
 
@@ -74,6 +75,29 @@ export async function startBot() {
 
       const phone = msg.key.remoteJid.replace('@s.whatsapp.net', '');
       const pushName = msg.pushName || '';
+
+      // Handle voice notes
+      if (msg.message.audioMessage) {
+        try {
+          const buffer = await downloadMediaMessage(msg, 'buffer', {});
+          const audioBase64 = buffer.toString('base64');
+          const response = await backendAPI.chatWithAudio(audioBase64, {
+            user_id: phone,
+            user_type: 'unknown'
+          });
+          if (response.message) {
+            await sock.sendMessage(msg.key.remoteJid, { text: response.message });
+          }
+        } catch (err) {
+          console.error(`Error handling voice from ${phone}:`, err);
+          await sock.sendMessage(msg.key.remoteJid, {
+            text: "I couldn't process that voice note. Try sending a text message instead."
+          });
+        }
+        continue;
+      }
+
+      // Handle text messages
       const text = msg.message.conversation
         || msg.message.extendedTextMessage?.text
         || '';
