@@ -177,24 +177,67 @@ class SquadService {
   /**
    * Verify a bank account number and get the account name
    * Used during worker onboarding to validate bank details before payouts
-   * @param {string} bankCode - NIP bank code (6 chars, e.g., '000013' for GTBank)
+   * @param {string} bankCode - CBN bank code (e.g., '058' for GTBank) or NIP code
    * @param {string} accountNumber - 10-digit account number
    * @returns {Object} { accountName, accountNumber, bankCode }
    */
   async lookupAccount(bankCode, accountNumber) {
-    // Squad requires 6-character NIP code, pad short bank codes
-    const nipCode = bankCode.length < 6 ? bankCode.padStart(6, '0') : bankCode;
+    // Squad requires the NIP code, not the CBN code
+    // Map CBN codes to NIP codes for DMBs (3-digit codes)
+    const nipCode = this._resolveNIPCode(bankCode);
     const body = {
       bank_code: nipCode,
       account_number: accountNumber
     };
 
+    console.log(`[Squad] Account lookup: bank_code=${bankCode} → nip=${nipCode}, account=${accountNumber}`);
     const result = await this._request('POST', '/payout/account/lookup', body);
     return {
       accountName: result.data.account_name,
       accountNumber: result.data.account_number,
       bankCode
     };
+  }
+
+  /**
+   * Resolve a CBN bank code to the correct NIP code for Squad API
+   * DMBs use different NIP codes than their CBN codes
+   */
+  _resolveNIPCode(bankCode) {
+    // NIP code mapping for Deposit Money Banks (DMBs)
+    const CBN_TO_NIP = {
+      '044': '000014', // Access Bank
+      '023': '000009', // Citibank
+      '050': '000010', // Ecobank
+      '070': '000007', // Fidelity Bank
+      '011': '000016', // First Bank
+      '214': '000003', // FCMB
+      '058': '000013', // GTBank
+      '030': '000020', // Heritage Bank
+      '082': '000002', // Keystone Bank
+      '076': '000008', // Polaris Bank
+      '221': '000012', // Stanbic IBTC
+      '068': '000021', // Standard Chartered
+      '232': '000001', // Sterling Bank
+      '033': '000004', // UBA
+      '032': '000018', // Union Bank
+      '215': '000011', // Unity Bank
+      '035': '000017', // Wema Bank
+      '057': '000015', // Zenith Bank
+    };
+
+    // If it's already a 6-digit code (OFI/fintech), use as-is
+    if (bankCode.length >= 6) {
+      return bankCode;
+    }
+
+    // If we have a mapping, use the NIP code
+    if (CBN_TO_NIP[bankCode]) {
+      return CBN_TO_NIP[bankCode];
+    }
+
+    // Fallback: pad with zeros (may not work for all banks)
+    return bankCode.padStart(6, '0');
   }
 
   /**

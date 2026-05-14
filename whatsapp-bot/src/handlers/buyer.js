@@ -36,6 +36,11 @@ export async function handleBuyer(phone, text, state, conversations) {
 
       const paymentMsg = response.messages?.find((m) => m.type === 'payment_card');
       if (paymentMsg) {
+        backendAPI.notifyEvent('payment_initiated', {
+          actor: phone,
+          description: `Buyer booking ${worker.name} via WhatsApp — ₦${Number(paymentMsg.data.amount).toLocaleString()}`,
+          metadata: { worker_name: worker.name, amount: paymentMsg.data.amount, channel: 'whatsapp' }
+        });
         conversations.delete(phone);
         return `💳 *Payment for ${worker.name}*
 
@@ -54,6 +59,13 @@ After payment, ${worker.name.split(' ')[0]} will be notified and you'll get a co
   }
 
   // Default: Send natural language to AI
+  // Notify dashboard that a buyer message arrived
+  backendAPI.notifyEvent('message_parsed', {
+    actor: phone,
+    description: `WhatsApp: "${text}"`,
+    metadata: { channel: 'whatsapp', phone }
+  });
+
   try {
     const response = await backendAPI.chat(text, { phone, channel: 'whatsapp' });
 

@@ -2,6 +2,7 @@
 const { Router } = require('express');
 const knex = require('../database/knex');
 const redis = require('../utils/redis');
+const eventBus = require('../utils/eventBus');
 const { generatePathwayRecommendation } = require('../services/demand');
 
 const router = Router();
@@ -31,6 +32,13 @@ router.post('/register', async (req, res) => {
       location_lng,
       interests: interests || []
     }).returning('*');
+
+    // Broadcast to dashboard
+    eventBus.emit('seeker_registered', {
+      actor: name,
+      description: `${name} registered as job seeker in ${area || 'Lagos'} — interests: ${(interests || []).join(', ') || 'general'}`,
+      metadata: { seeker_name: name, area, interests, channel: 'pwa' }
+    });
 
     return res.status(201).json({ success: true, seeker_id: seeker.id, name, area });
   } catch (error) {
@@ -121,13 +129,13 @@ router.post('/:id/apply', async (req, res) => {
       .where({ id: master_worker_id })
       .update({ apprentice_slots: knex.raw('apprentice_slots - 1') });
 
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'apprenticeship_started',
-      trade,
-      area: master.service_areas?.[0],
-      master_name: master.name,
-      timestamp: new Date().toISOString()
-    }));
+    // Broadcast to dashboard
+    const seeker = await knex('seekers').where({ id: seekerId }).first();
+    eventBus.emit('apprenticeship_started', {
+      actor: seeker?.name || 'Job Seeker',
+      description: `Apprenticeship started: ${seeker?.name || 'Seeker'} → ${master.name} (${trade}, 12 weeks)`,
+      metadata: { trade, area: master.service_areas?.[0], master_name: master.name, channel: 'pwa' }
+    });
 
     return res.status(201).json({
       success: true,

@@ -7,6 +7,11 @@ export async function handleWorkerCommand(phone, command, state, conversations) 
       try {
         const worker = await backendAPI.getWorkerByPhone(phone);
         await backendAPI.updateAvailability(worker.id, true);
+        backendAPI.notifyEvent('worker_availability_changed', {
+          actor: worker.name,
+          description: `${worker.name} is now AVAILABLE via WhatsApp`,
+          metadata: { worker_name: worker.name, is_available: true, area: worker.service_areas?.[0], channel: 'whatsapp' }
+        });
         return `✅ *You're now READY!*
 
 You'll receive job alerts for your area. Stay close to your phone! 📱
@@ -21,6 +26,11 @@ SabiScore: ${worker.sabi_score}/100`;
       try {
         const worker = await backendAPI.getWorkerByPhone(phone);
         await backendAPI.updateAvailability(worker.id, false);
+        backendAPI.notifyEvent('worker_availability_changed', {
+          actor: worker.name,
+          description: `${worker.name} is now BUSY via WhatsApp`,
+          metadata: { worker_name: worker.name, is_available: false, area: worker.service_areas?.[0], channel: 'whatsapp' }
+        });
         return `⏸️ *Status: BUSY*
 
 You won't receive new job alerts until you send READY again.
@@ -47,6 +57,12 @@ Rest well! 💤`;
           action: 'accept_job',
           job_id: ctx.job_id,
           phone
+        });
+
+        backendAPI.notifyEvent('job_status_changed', {
+          actor: phone,
+          description: `Worker accepted job via WhatsApp`,
+          metadata: { job_id: ctx.job_id, status: 'accepted', channel: 'whatsapp' }
         });
 
         conversations.set(phone, { ...state, jobAlert: null });

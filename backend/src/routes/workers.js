@@ -285,6 +285,14 @@ router.patch('/:id/availability', async (req, res) => {
       .where({ id: req.params.id })
       .update({ is_available, last_active_at: new Date() });
 
+    // Broadcast to dashboard
+    const worker = await knex('workers').where({ id: req.params.id }).first();
+    eventBus.emit('worker_availability_changed', {
+      actor: worker?.name || 'Worker',
+      description: `${worker?.name || 'Worker'} is now ${is_available ? 'AVAILABLE' : 'BUSY'}`,
+      metadata: { worker_name: worker?.name, is_available, area: worker?.service_areas?.[0], channel: req.body.channel || 'whatsapp' }
+    });
+
     return res.status(200).json({ success: true, is_available });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to update availability' });

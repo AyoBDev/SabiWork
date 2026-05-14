@@ -2,6 +2,7 @@
 const { Router } = require('express');
 const knex = require('../database/knex');
 const redis = require('../utils/redis');
+const eventBus = require('../utils/eventBus');
 const { classifyIntent, findNearbyWorkers, rankWorkers, generateMatchResponse } = require('../services/matching');
 const { classifySale } = require('../services/nlp');
 const { generatePathwayRecommendation } = require('../services/demand');
@@ -66,12 +67,11 @@ async function handleBuyerRequest(req, res, intent, { user_id, user_lat, user_ln
   const candidates = await findNearbyWorkers(intent, user_lat, user_lng);
 
   if (candidates.length === 0) {
-    await redis.publish('dashboard_events', JSON.stringify({
-      type: 'unmatched_demand',
-      trade: intent.trade_category,
-      area: intent.location,
-      timestamp: new Date().toISOString()
-    }));
+    eventBus.emit('unmatched_demand', {
+      actor: 'AI Engine',
+      description: `Unmatched request: ${(intent.trade_category || 'worker').replace('_', ' ')} in ${intent.location || 'unknown area'} — no workers available`,
+      metadata: { trade: intent.trade_category, area: intent.location, channel: 'pwa' }
+    });
 
     return res.status(200).json({
       type: 'text',
@@ -89,6 +89,13 @@ async function handleBuyerRequest(req, res, intent, { user_id, user_lat, user_ln
     .orderBy('recorded_at', 'desc')
     .limit(1)
     .update({ matched: true });
+
+  // Broadcast match to dashboard
+  eventBus.emit('job_matched', {
+    actor: 'AI Engine',
+    description: `Matched buyer with ${topMatch.name} (${intent.trade_category}, SabiScore ${topMatch.sabi_score || 'N/A'}, ${topMatch.distance_km ? Math.round(topMatch.distance_km * 10) / 10 + 'km' : intent.location || 'Lagos'})`,
+    metadata: { worker_name: topMatch.name, service: intent.trade_category, area: intent.location, channel: 'pwa' }
+  });
 
   return res.status(200).json({
     type: 'worker_card',
@@ -175,15 +182,12 @@ async function handleSaleLog(req, res, message, userId) {
   const previousScore = trader.sabi_score;
   const weeksToLoan = sabiResult.score >= 50 ? 0 : Math.ceil((50 - sabiResult.score) / 2);
 
-  await redis.publish('dashboard_events', JSON.stringify({
-    type: 'sale_logged',
-    amount: sale.amount,
-    trader_name: trader.name,
-    area: trader.area,
-    category: sale.category,
-    sabi_score: sabiResult.score,
-    timestamp: new Date().toISOString()
-  }));
+  // Broadcast to dashboard
+  eventBus.emit('sale_logged', {
+    actor: trader.name,
+    description: `Sale logged: ${sale.quantity}x ${sale.item_name} for ₦${sale.amount.toLocaleString()} — SabiScore: ${sabiResult.score}`,
+    metadata: { amount: sale.amount, trader_name: trader.name, area: trader.area, category: sale.category, sabi_score: sabiResult.score, channel: 'whatsapp' }
+  });
 
   return res.status(200).json({
     type: 'sale_logged',

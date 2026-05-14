@@ -3,6 +3,7 @@ const { Router } = require('express');
 const { v4: uuidv4 } = require('uuid');
 const knex = require('../database/knex');
 const squadService = require('../services/squad');
+const eventBus = require('../utils/eventBus');
 const config = require('../config');
 const { PLATFORM_FEE_PERCENT } = require('../../shared/constants');
 
@@ -70,6 +71,13 @@ router.post('/initiate', async (req, res) => {
         area: job.area
       },
       paymentChannels: ['card', 'bank', 'ussd', 'transfer']
+    });
+
+    // Broadcast to dashboard
+    eventBus.emit('payment_initiated', {
+      actor: 'Buyer',
+      description: `Payment initiated: ₦${amount.toLocaleString()} for ${worker.primary_trade} job (${worker.name})`,
+      metadata: { amount: amount * 100, worker_name: worker.name, service: worker.primary_trade, area: job.area, reference: transactionRef, channel: 'pwa' }
     });
 
     return res.status(200).json({
@@ -186,15 +194,11 @@ router.post('/payout', async (req, res) => {
         });
 
       // Broadcast to dashboard
-      const redis = require('../utils/redis');
-      await redis.publish('dashboard_events', JSON.stringify({
-        type: 'payout_sent',
-        amount: payoutAmount,
-        worker_name: worker.name,
-        bank: worker.account_name,
-        area: worker.service_areas?.[0],
-        timestamp: new Date().toISOString()
-      }));
+      eventBus.emit('payout_sent', {
+        actor: 'Squad API',
+        description: `Payout ₦${payoutAmount.toLocaleString()} sent to ${worker.name} (${worker.account_name})`,
+        metadata: { amount: payoutAmount * 100, worker_name: worker.name, bank: worker.account_name, area: worker.service_areas?.[0], channel: 'system' }
+      });
 
       return res.status(200).json({
         success: true,

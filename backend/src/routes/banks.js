@@ -71,7 +71,9 @@ router.post('/resolve', async (req, res) => {
   // Step 2: Try to verify with Squad account lookup (first match wins)
   for (const bank of candidates) {
     try {
-      const result = await squad.lookupAccount(bank.code, account_number);
+      // Use NIP code for Squad API
+      const lookupCode = bank.nip || bank.code;
+      const result = await squad.lookupAccount(lookupCode, account_number);
       if (result.accountName) {
         return res.json({
           resolved: {
@@ -119,12 +121,15 @@ router.post('/lookup', async (req, res) => {
   }
 
   try {
-    const result = await squad.lookupAccount(code, account_number);
+    // Find the bank to get the NIP code (Squad uses NIP, not CBN)
+    const bankEntry = NIGERIAN_BANKS.find(b => b.code === code);
+    const lookupCode = bankEntry?.nip || code;
+    const result = await squad.lookupAccount(lookupCode, account_number);
     res.json({
       account_name: result.accountName,
       account_number: result.accountNumber,
       bank_code: code,
-      bank_name: NIGERIAN_BANKS.find(b => b.code === code)?.name || code
+      bank_name: bankEntry?.name || code
     });
   } catch (err) {
     res.status(400).json({ error: err.message || 'Account lookup failed' });

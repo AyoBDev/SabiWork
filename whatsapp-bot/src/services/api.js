@@ -32,7 +32,7 @@ export const backendAPI = {
   getWorkerByPhone: (phone) =>
     request('GET', `/api/workers/phone/${phone}`),
   updateAvailability: (id, available) =>
-    request('PATCH', `/api/workers/${id}/availability`, { is_available: available }),
+    request('PATCH', `/api/workers/${id}/availability`, { is_available: available, channel: 'whatsapp' }),
 
   // Traders
   registerTrader: (data) =>

@@ -28,6 +28,14 @@ router.post('/', async (req, res) => {
       created_at: new Date()
     }).returning('*');
 
+    // Get worker name for dashboard
+    const worker = await knex('workers').where({ id: worker_id }).first();
+    eventBus.emit('job_created', {
+      actor: 'Buyer',
+      description: `New job created: ${service_category} in ${area || 'Lagos'} — ₦${(agreed_amount || 0).toLocaleString()}`,
+      metadata: { worker_name: worker?.name, service: service_category, area, amount: agreed_amount, channel: 'pwa' }
+    });
+
     res.status(201).json(job);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -49,6 +57,14 @@ router.patch('/:id/status', async (req, res) => {
     if (!updated) {
       return res.status(404).json({ error: 'Job not found' });
     }
+
+    // Broadcast status change to dashboard
+    const jobWorker = await knex('workers').where({ id: updated.worker_id }).first();
+    eventBus.emit('job_status_changed', {
+      actor: jobWorker?.name || 'System',
+      description: `Job status → ${status}: ${updated.service_category} in ${updated.area || 'Lagos'}`,
+      metadata: { worker_name: jobWorker?.name, service: updated.service_category, area: updated.area, status }
+    });
 
     res.json(updated);
   } catch (err) {

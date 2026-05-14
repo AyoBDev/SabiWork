@@ -23,29 +23,62 @@ import {
   Truck,
   CircleDollarSign,
   BadgeCheck,
-  LayoutDashboard
+  LayoutDashboard,
+  Briefcase,
+  MapPin,
+  UserPlus,
+  GraduationCap,
+  CreditCard,
+  AlertTriangle,
+  ToggleRight,
+  Send
 } from 'lucide-react';
 
 const STATUS_ICONS = {
+  // Sales & Trading
   sale_logged: { icon: Store, color: 'text-orange-400' },
+  trader_registered: { icon: Store, color: 'text-orange-400' },
+  supplier_matched: { icon: Truck, color: 'text-orange-400' },
+
+  // Payments & Wallet
   payment_received: { icon: Wallet, color: 'text-yellow-400' },
+  payment_initiated: { icon: CreditCard, color: 'text-yellow-400' },
   payout_sent: { icon: Banknote, color: 'text-green-400' },
+  wallet_transfer: { icon: Send, color: 'text-green-400' },
+
+  // Workers
   worker_onboarded: { icon: HardHat, color: 'text-blue-400' },
+  worker_availability_changed: { icon: ToggleRight, color: 'text-blue-400' },
+  worker_location_updated: { icon: MapPin, color: 'text-blue-400' },
+
+  // Jobs
+  job_created: { icon: Briefcase, color: 'text-purple-400' },
   job_matched: { icon: Bot, color: 'text-purple-400' },
+  job_status_changed: { icon: Briefcase, color: 'text-purple-400' },
   job_completed: { icon: CheckCircle2, color: 'text-green-400' },
+  rating_received: { icon: Star, color: 'text-yellow-400' },
+
+  // Seekers & Apprenticeships
+  seeker_registered: { icon: UserPlus, color: 'text-indigo-400' },
+  apprenticeship_started: { icon: GraduationCap, color: 'text-indigo-400' },
+
+  // Investment
   investment_round_created: { icon: TrendingUp, color: 'text-cyan-400' },
+  investment_round_opened: { icon: TrendingUp, color: 'text-cyan-400' },
   investment_joined: { icon: Handshake, color: 'text-pink-400' },
+  investment_received: { icon: CircleDollarSign, color: 'text-green-400' },
   investment_repayment: { icon: Gem, color: 'text-violet-400' },
+
+  // Scores & Verification
   score_updated: { icon: BarChart3, color: 'text-cyan-400' },
   agent_verified: { icon: ShieldCheck, color: 'text-emerald-400' },
-  message_parsed: { icon: MessageSquare, color: 'text-pink-400' },
-  trader_registered: { icon: Store, color: 'text-orange-400' },
-  rating_received: { icon: Star, color: 'text-yellow-400' },
-  supplier_matched: { icon: Truck, color: 'text-orange-400' },
-  investment_round_opened: { icon: TrendingUp, color: 'text-cyan-400' },
-  investment_received: { icon: CircleDollarSign, color: 'text-green-400' },
   verification_granted: { icon: BadgeCheck, color: 'text-emerald-400' },
-  wallet_transfer: { icon: Banknote, color: 'text-green-400' },
+
+  // Messages & AI
+  message_parsed: { icon: MessageSquare, color: 'text-pink-400' },
+  unmatched_demand: { icon: AlertTriangle, color: 'text-red-400' },
+
+  // System
   platform_summary: { icon: LayoutDashboard, color: 'text-blue-400' },
   default: { icon: Zap, color: 'text-green-400' }
 };
