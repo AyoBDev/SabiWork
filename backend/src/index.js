@@ -41,6 +41,7 @@ app.use('/api/invest', require('./routes/invest'));
 app.use('/api/banks', require('./routes/banks'));
 app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/demo', require('./routes/demo'));
+app.use('/api/whatsapp', require('./routes/whatsapp'));
 
 // Route index
 app.get('/api', (req, res) => {
@@ -79,6 +80,11 @@ app.get('/api', (req, res) => {
       'GET    /api/intelligence/forecast',
       'GET    /api/intelligence/financial-inclusion',
       'GET    /api/intelligence/pathway',
+      'GET    /api/whatsapp/status',
+      'POST   /api/whatsapp/start',
+      'POST   /api/whatsapp/disconnect',
+      'POST   /api/whatsapp/clear-session',
+      'POST   /api/whatsapp/send',
       'WS     /dashboard/feed'
     ]
   });
@@ -89,6 +95,12 @@ server.listen(config.port, '0.0.0.0', () => {
   console.log(`SabiWork backend running on port ${config.port}`);
   console.log(`WebSocket feed available at ws://0.0.0.0:${config.port}/dashboard/feed`);
   console.log(`API index at http://0.0.0.0:${config.port}/api`);
+
+  // Auto-start WhatsApp bot (non-blocking)
+  const { startWhatsApp } = require('./services/whatsapp');
+  startWhatsApp().catch(err => {
+    console.log('[WhatsApp] Auto-start skipped or failed:', err.message);
+  });
 });
 
 module.exports = { app, server };
