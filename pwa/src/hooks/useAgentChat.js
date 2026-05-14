@@ -165,17 +165,18 @@ export function useAgentChat() {
       // Animate through each worker on the map
       for (let i = 0; i < evaluated.length; i++) {
         const w = evaluated[i];
-        setHighlightedWorkerId(w.id);
+        const workerId = w.id || w.phone || `${w.location_lat}_${w.location_lng}`;
+        setHighlightedWorkerId(workerId);
 
         // Add evaluation step visible in messages (user can reopen chat to see)
         addMessage({
           type: 'agent_step',
-          text: `Checking ${w.name}: ₦${w._rate.toLocaleString()}/hr • ${w._distance.toFixed(1)}km away • ${(w.avg_rating || 4.5).toFixed(1)}★`,
+          text: `Checking ${w.name || `Worker ${i + 1}`}: ₦${w._rate.toLocaleString()}/hr • ${w._distance.toFixed(1)}km away • ${(w.avg_rating || 4.5).toFixed(1)}★`,
           stepType: i === evaluated.length - 1 ? 'action' : 'searching',
           sender: 'ai'
         });
 
-        await delay(1200 + Math.random() * 400);
+        await delay(1500);
       }
 
       // Pick the best one based on criteria
@@ -198,27 +199,28 @@ export function useAgentChat() {
       }
 
       // Highlight the winner
-      setHighlightedWorkerId(best.id);
+      const bestId = best.id || best.phone || `${best.location_lat}_${best.location_lng}`;
+      setHighlightedWorkerId(bestId);
 
       addMessage({
         type: 'agent_step',
-        text: `✓ Best match: ${best.name}`,
+        text: `Best match: ${best.name || 'Worker'}`,
         stepType: 'complete',
         sender: 'ai'
       });
 
-      await delay(600);
+      await delay(800);
 
       addMessage({
         type: 'agent_result',
-        text: `Recommended: ${best.name}\n\n• Price: ₦${best._rate.toLocaleString()}/hr\n• Distance: ${best._distance.toFixed(1)}km away\n• Rating: ${(best.avg_rating || 4.7).toFixed(1)}★\n• Sabi Score: ${best.sabi_score || 0}\n\nI've highlighted them on the map. Tap the marker to view their full profile and book.`,
+        text: `Recommended: ${best.name || 'Worker'}\n\n• Price: ₦${best._rate.toLocaleString()}/hr\n• Distance: ${best._distance.toFixed(1)}km away\n• Rating: ${(best.avg_rating || 4.7).toFixed(1)}★\n• Sabi Score: ${best.sabi_score || 0}\n\nI've highlighted them on the map. Tap the marker to view their full profile and book.`,
         data: { worker: best },
         actionType: 'show_map',
         sender: 'ai'
       });
 
       // Clear highlight after some time
-      await delay(5000);
+      await delay(8000);
       setHighlightedWorkerId(null);
 
     } catch (err) {

@@ -134,41 +134,47 @@ export default function MapCanvas({ onMarkerClick }) {
 
   // Highlight a specific marker when agent is evaluating
   useEffect(() => {
-    if (!mapRef.current || !highlightedWorkerId) return;
+    if (!mapRef.current) return;
 
     markersRef.current.forEach((marker, idx) => {
       const el = marker.getElement();
       const worker = workers[idx];
       if (!worker) return;
 
-      if (worker.id === highlightedWorkerId) {
-        el.style.transform = 'scale(1.4)';
-        el.style.zIndex = '999';
-        el.style.boxShadow = '0 0 0 4px rgba(124, 179, 66, 0.5), 0 4px 12px rgba(0,0,0,0.3)';
-        el.style.transition = 'transform 0.3s, box-shadow 0.3s';
+      if (!highlightedWorkerId) {
+        // Reset all markers
+        el.style.opacity = '1';
+        el.style.filter = '';
+        el.style.width = '44px';
+        el.style.height = '44px';
+        el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        el.style.transition = 'opacity 0.3s, filter 0.3s, width 0.3s, height 0.3s, box-shadow 0.3s';
+        return;
+      }
+
+      const isHighlighted = worker.id === highlightedWorkerId ||
+        worker.phone === highlightedWorkerId ||
+        `${worker.location_lat}_${worker.location_lng}` === highlightedWorkerId;
+
+      if (isHighlighted) {
+        el.style.opacity = '1';
+        el.style.filter = '';
+        el.style.width = '56px';
+        el.style.height = '56px';
+        el.style.boxShadow = '0 0 0 4px rgba(124, 179, 66, 0.6), 0 4px 16px rgba(0,0,0,0.3)';
+        el.style.transition = 'opacity 0.3s, filter 0.3s, width 0.3s, height 0.3s, box-shadow 0.3s';
         // Pan map to this worker
         const lngLat = marker.getLngLat();
-        mapRef.current.easeTo({ center: lngLat, duration: 600 });
+        mapRef.current.easeTo({ center: lngLat, duration: 800 });
       } else {
-        el.style.transform = 'scale(0.8)';
-        el.style.zIndex = '1';
-        el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-        el.style.opacity = '0.5';
-        el.style.transition = 'transform 0.3s, box-shadow 0.3s, opacity 0.3s';
+        el.style.opacity = '0.4';
+        el.style.filter = 'grayscale(0.7)';
+        el.style.width = '36px';
+        el.style.height = '36px';
+        el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.1)';
+        el.style.transition = 'opacity 0.3s, filter 0.3s, width 0.3s, height 0.3s, box-shadow 0.3s';
       }
     });
-
-    return () => {
-      // Reset all markers when highlight clears
-      markersRef.current.forEach((marker) => {
-        const el = marker.getElement();
-        el.style.transform = '';
-        el.style.zIndex = '';
-        el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-        el.style.opacity = '1';
-        el.style.transition = 'transform 0.3s, box-shadow 0.3s, opacity 0.3s';
-      });
-    };
   }, [highlightedWorkerId, workers]);
 
   return (
