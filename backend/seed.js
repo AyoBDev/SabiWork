@@ -107,7 +107,7 @@ async function seed() {
       area: s.area,
       location_lat: coords.lat,
       location_lng: coords.lng,
-      interests: JSON.stringify(s.interests),
+      interests: `{${(s.interests || []).join(',')}}`,
       created_at: dateBetweenDaysAgo(60, 14)
     }).returning('id');
     seekerIds.push(inserted.id || inserted);
