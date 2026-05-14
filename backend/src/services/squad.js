@@ -182,8 +182,10 @@ class SquadService {
    * @returns {Object} { accountName, accountNumber, bankCode }
    */
   async lookupAccount(bankCode, accountNumber) {
+    // Squad requires 6-character NIP code, pad short bank codes
+    const nipCode = bankCode.length < 6 ? bankCode.padStart(6, '0') : bankCode;
     const body = {
-      bank_code: bankCode,
+      bank_code: nipCode,
       account_number: accountNumber
     };
 

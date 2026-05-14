@@ -63,12 +63,23 @@ router.post('/onboard', async (req, res) => {
       onboarding_channel, onboarded_by
     } = req.body;
 
-    if (!phone || !primary_trade) {
-      return res.status(400).json({ error: 'Missing required fields: phone, primary_trade' });
+    if (!primary_trade) {
+      return res.status(400).json({ error: 'Missing required field: primary_trade' });
     }
 
-    // Check if already registered
-    const existing = await knex('workers').where({ phone }).first();
+    // Must have either phone or bank account as identity
+    if (!phone && (!bank_code && !bank_name || !account_number)) {
+      return res.status(400).json({ error: 'Must provide either phone or bank account (bank_code + account_number) as identity' });
+    }
+
+    // Check if already registered (by phone or account number)
+    let existing = null;
+    if (phone) {
+      existing = await knex('workers').where({ phone }).first();
+    }
+    if (!existing && account_number) {
+      existing = await knex('workers').where({ account_number }).first();
+    }
     if (existing) {
       return res.status(409).json({ error: 'Worker already registered', worker_id: existing.id });
     }

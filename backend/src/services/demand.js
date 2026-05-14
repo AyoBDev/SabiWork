@@ -17,7 +17,7 @@ async function getDemandByArea(area, days = 30) {
     .where('recorded_at', '>=', windowStart)
     .select('trade_category')
     .count('* as total_requests')
-    .sum(knex.raw("CASE WHEN NOT matched THEN 1 ELSE 0 END as unmatched"))
+    .select(knex.raw("SUM(CASE WHEN NOT matched THEN 1 ELSE 0 END) as unmatched"))
     .avg('amount as avg_price')
     .groupBy('trade_category')
     .orderByRaw('SUM(CASE WHEN NOT matched THEN 1 ELSE 0 END) DESC');
@@ -70,7 +70,7 @@ async function getDemandNearPoint(lat, lng, radiusKm = 3, days = 30) {
     `, [lat, lng, lat, radiusKm])
     .select('trade_category')
     .count('* as total_requests')
-    .sum(knex.raw("CASE WHEN NOT matched THEN 1 ELSE 0 END as unmatched"))
+    .select(knex.raw("SUM(CASE WHEN NOT matched THEN 1 ELSE 0 END) as unmatched"))
     .avg('amount as avg_price')
     .groupBy('trade_category')
     .orderByRaw('SUM(CASE WHEN NOT matched THEN 1 ELSE 0 END) DESC');

@@ -106,9 +106,15 @@ async function handleBuyerRequest(req, res, intent, { user_id, user_lat, user_ln
 }
 
 async function handleSaleLog(req, res, message, userId) {
-  let trader = await knex('traders').where({ id: userId }).first();
-  if (!trader) {
+  let trader = null;
+  if (userId) {
+    // Try phone lookup first (most common from WhatsApp), then UUID
     trader = await knex('traders').where({ phone: userId }).first();
+    if (!trader) {
+      try {
+        trader = await knex('traders').where({ id: userId }).first();
+      } catch (_) { /* userId is not a valid UUID, ignore */ }
+    }
   }
 
   if (!trader) {
@@ -230,8 +236,15 @@ async function handleJobSeeker(req, res, intent, { user_id, user_lat, user_lng }
 }
 
 async function handleStatusCheck(req, res, userId, userType) {
+  if (!userId) {
+    return res.status(200).json({ type: 'text', message: "I couldn't find your profile. Please register first." });
+  }
+
   if (userType === 'worker' || !userType) {
-    const worker = await knex('workers').where({ id: userId }).orWhere({ phone: userId }).first();
+    let worker = await knex('workers').where({ phone: userId }).first();
+    if (!worker) {
+      try { worker = await knex('workers').where({ id: userId }).first(); } catch (_) {}
+    }
     if (worker) {
       return res.status(200).json({
         type: 'status',
@@ -247,7 +260,10 @@ async function handleStatusCheck(req, res, userId, userType) {
   }
 
   if (userType === 'trader') {
-    const trader = await knex('traders').where({ id: userId }).orWhere({ phone: userId }).first();
+    let trader = await knex('traders').where({ phone: userId }).first();
+    if (!trader) {
+      try { trader = await knex('traders').where({ id: userId }).first(); } catch (_) {}
+    }
     if (trader) {
       return res.status(200).json({
         type: 'status',

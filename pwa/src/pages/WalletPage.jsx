@@ -1,5 +1,7 @@
 // pwa/src/pages/WalletPage.jsx
+import { useState } from 'react';
 import { Send, ArrowUp, PlusCircle, Clock, Bookmark, Lock, Bell, ArrowDown, Home } from 'lucide-react';
+import SendSheet from '../components/wallet/SendSheet';
 
 const MOCK_TRANSACTIONS = [
   {
@@ -65,6 +67,9 @@ const SPENDING_DATA = [
 ];
 
 export default function WalletPage() {
+  const [sendOpen, setSendOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+
   return (
     <div className="h-full pb-16 overflow-y-auto bg-white">
       {/* Header */}
@@ -111,17 +116,17 @@ export default function WalletPage() {
       {/* Action buttons */}
       <div className="flex justify-around px-5 py-5">
         {[
-          { label: 'Send', icon: 'send' },
-          { label: 'Withdraw', icon: 'withdraw' },
-          { label: 'Add Money', icon: 'add' },
-          { label: 'History', icon: 'history' },
-          { label: 'Savings', icon: 'savings' }
-        ].map((action) => (
-          <button key={action.label} className="flex flex-col items-center gap-1.5">
+          { label: 'Send', icon: 'send', action: () => setSendOpen(true) },
+          { label: 'Withdraw', icon: 'withdraw', action: () => setWithdrawOpen(true) },
+          { label: 'Add Money', icon: 'add', action: null },
+          { label: 'History', icon: 'history', action: null },
+          { label: 'Savings', icon: 'savings', action: null }
+        ].map((item) => (
+          <button key={item.label} onClick={item.action} className="flex flex-col items-center gap-1.5">
             <div className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center bg-white">
-              <ActionIcon type={action.icon} />
+              <ActionIcon type={item.icon} />
             </div>
-            <span className="text-[10px] text-gray-600 font-medium">{action.label}</span>
+            <span className="text-[10px] text-gray-600 font-medium">{item.label}</span>
           </button>
         ))}
       </div>
@@ -183,6 +188,9 @@ export default function WalletPage() {
           ))}
         </div>
       </div>
+      {/* Send/Withdraw Sheets */}
+      <SendSheet open={sendOpen} onClose={() => setSendOpen(false)} type="send" />
+      <SendSheet open={withdrawOpen} onClose={() => setWithdrawOpen(false)} type="withdraw" />
     </div>
   );
 }

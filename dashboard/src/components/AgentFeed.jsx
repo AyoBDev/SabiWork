@@ -45,6 +45,7 @@ const STATUS_ICONS = {
   investment_round_opened: { icon: TrendingUp, color: 'text-cyan-400' },
   investment_received: { icon: CircleDollarSign, color: 'text-green-400' },
   verification_granted: { icon: BadgeCheck, color: 'text-emerald-400' },
+  wallet_transfer: { icon: Banknote, color: 'text-green-400' },
   platform_summary: { icon: LayoutDashboard, color: 'text-blue-400' },
   default: { icon: Zap, color: 'text-green-400' }
 };

@@ -63,6 +63,25 @@ export const api = {
       body: JSON.stringify({ is_available: available })
     }),
 
+  // Banks
+  getBanks: (search) => request(`/banks${search ? `?search=${search}` : ''}`),
+  lookupBank: (bankCode, accountNumber) =>
+    request('/banks/lookup', {
+      method: 'POST',
+      body: JSON.stringify({ bank_code: bankCode, account_number: accountNumber })
+    }),
+  resolveAccount: (accountNumber) =>
+    request('/banks/resolve', {
+      method: 'POST',
+      body: JSON.stringify({ account_number: accountNumber })
+    }),
+
+  // Wallet
+  walletTransfer: (data) =>
+    request('/wallet/transfer', { method: 'POST', body: JSON.stringify(data) }),
+  getWalletBalance: () => request('/wallet/balance'),
+  getWalletTransactions: (phone) => request(`/wallet/transactions?phone=${phone || ''}`),
+
   // Traders
   logSale: (data) =>
     request('/traders/sales', { method: 'POST', body: JSON.stringify(data) }),

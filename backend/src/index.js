@@ -38,6 +38,8 @@ app.use('/api/seekers', require('./routes/seekers'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/intelligence', require('./routes/intelligence'));
 app.use('/api/invest', require('./routes/invest'));
+app.use('/api/banks', require('./routes/banks'));
+app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/demo', require('./routes/demo'));
 
 // Route index
@@ -64,6 +66,12 @@ app.get('/api', (req, res) => {
       'POST   /api/seekers/:id/apply',
       'POST   /api/jobs/:id/complete',
       'GET    /api/jobs/:id',
+      'GET    /api/banks',
+      'POST   /api/banks/resolve',
+      'POST   /api/banks/lookup',
+      'POST   /api/wallet/transfer',
+      'GET    /api/wallet/balance',
+      'GET    /api/wallet/transactions',
       'GET    /api/intelligence/stats',
       'GET    /api/intelligence/gaps',
       'GET    /api/intelligence/demand-heat',
