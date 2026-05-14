@@ -183,16 +183,16 @@ export default function AuthPage() {
   // Handle user type selection
   function handleUserTypeSelect(type) {
     setUserType(type);
-    if (type === 'buyer') {
-      // Buyers don't need trade/area selection — register immediately
-      handleBuyerOnboard();
+    if (type === 'buyer' || type === 'trader' || type === 'seeker') {
+      // These roles don't need trade/area selection — register immediately
+      handleLightweightOnboard(type);
     } else {
       setStep('onboard');
     }
   }
 
-  // Quick onboard for buyers (no trade selection needed)
-  async function handleBuyerOnboard() {
+  // Quick onboard for non-worker roles (no trade selection needed)
+  async function handleLightweightOnboard(role) {
     setLoading(true);
     setError('');
     try {
@@ -207,21 +207,20 @@ export default function AuthPage() {
         });
       } catch (_) {}
 
-      // Register as buyer via the buyers API or just create session locally
-      // For hackathon — buyers get a lightweight session
-      const buyerSession = {
-        id: `buyer_${Date.now()}`,
-        name: onboardForm.name || 'Customer',
+      // Lightweight session for buyers, traders, and seekers
+      const session = {
+        id: `${role}_${Date.now()}`,
+        name: onboardForm.name || 'User',
         phone: onboardForm.phone || null,
         account_number: onboardForm.account_number || null,
         bank_code: onboardForm.bank_code || null,
-        role: 'buyer',
+        role,
         area: coords ? 'lagos' : 'surulere',
         trust_score: 0,
         sabi_score: 0
       };
-      localStorage.setItem('sabiwork_user', JSON.stringify(buyerSession));
-      setUser(buyerSession);
+      localStorage.setItem('sabiwork_user', JSON.stringify(session));
+      setUser(session);
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -548,6 +547,36 @@ export default function AuthPage() {
             <div>
               <h3 className="text-base font-bold text-gray-900">I provide services</h3>
               <p className="text-sm text-gray-500 mt-0.5">Get matched with customers, receive payments, and build your financial profile.</p>
+            </div>
+          </button>
+
+          {/* Trader */}
+          <button
+            onClick={() => handleUserTypeSelect('trader')}
+            disabled={loading}
+            className="w-full p-5 bg-orange-50 border-2 border-orange-200 rounded-2xl text-left flex items-start gap-4 active:scale-[0.98] transition-transform disabled:opacity-50"
+          >
+            <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+              <CreditCard className="w-6 h-6 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">I sell goods</h3>
+              <p className="text-sm text-gray-500 mt-0.5">Log your sales, track revenue, and build a credit score for business loans.</p>
+            </div>
+          </button>
+
+          {/* Seeker */}
+          <button
+            onClick={() => handleUserTypeSelect('seeker')}
+            disabled={loading}
+            className="w-full p-5 bg-purple-50 border-2 border-purple-200 rounded-2xl text-left flex items-start gap-4 active:scale-[0.98] transition-transform disabled:opacity-50"
+          >
+            <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+              <Search className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">I want to learn a trade</h3>
+              <p className="text-sm text-gray-500 mt-0.5">Find apprenticeships, see what skills are in demand, and start your career.</p>
             </div>
           </button>
 
