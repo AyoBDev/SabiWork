@@ -39,8 +39,12 @@ export const api = {
   createJob: (data) =>
     request('/jobs', { method: 'POST', body: JSON.stringify(data) }),
   getJob: (id) => request(`/jobs/${id}`),
+  getBuyerJobs: (buyerId) => request(`/jobs/buyer/${buyerId}`),
+  getWorkerJobs: (workerId) => request(`/jobs/worker/${workerId}`),
   rateJob: (id, rating) =>
     request(`/jobs/${id}/rate`, { method: 'POST', body: JSON.stringify({ rating }) }),
+  completeJob: (id, rating) =>
+    request(`/jobs/${id}/complete`, { method: 'POST', body: JSON.stringify({ rating }) }),
 
   // Payments
   initiatePayment: (data) =>

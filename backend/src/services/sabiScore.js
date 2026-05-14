@@ -230,6 +230,116 @@ function getTier(score) {
   return { label: 'Keep Logging', unlocks: 'none' };
 }
 
+/**
+ * Calculate Sabi Score for buyers
+ * Rewards: booking frequency, spending consistency, service diversity,
+ * rating participation, digital engagement
+ */
+async function calculateBuyerSabiScore(buyerId) {
+  const windowStart = new Date();
+  windowStart.setDate(windowStart.getDate() - WINDOW_DAYS);
+
+  // Booking consistency (weekly)
+  const weeklyBookings = await knex('jobs')
+    .where({ buyer_id: buyerId })
+    .where('created_at', '>=', windowStart)
+    .select(knex.raw("DATE_TRUNC('week', created_at) as week"))
+    .count('id as count')
+    .groupByRaw("DATE_TRUNC('week', created_at)");
+
+  const totalWeeks = Math.ceil(WINDOW_DAYS / 7);
+  const activeWeeks = weeklyBookings.length;
+  const bookingConsistency = Math.min(100, Math.round((activeWeeks / totalWeeks) * 100));
+
+  // Spending growth
+  const monthlySpend = await knex('jobs')
+    .where({ buyer_id: buyerId })
+    .where('created_at', '>=', windowStart)
+    .whereIn('status', ['completed', 'payout_sent', 'paid', 'in_escrow'])
+    .select(knex.raw("DATE_TRUNC('month', created_at) as month"))
+    .sum('agreed_amount as total')
+    .groupByRaw("DATE_TRUNC('month', created_at)")
+    .orderBy('month', 'asc');
+
+  let spendGrowth = 50;
+  if (monthlySpend.length >= 2) {
+    const last = parseInt(monthlySpend[monthlySpend.length - 1].total) || 0;
+    const prev = parseInt(monthlySpend[monthlySpend.length - 2].total) || 1;
+    const growthRate = (last - prev) / prev;
+    spendGrowth = Math.min(100, Math.max(0, Math.round(50 + growthRate * 50)));
+  }
+
+  // Service diversity — how many different service categories they've booked
+  const serviceCategories = await knex('jobs')
+    .where({ buyer_id: buyerId })
+    .where('created_at', '>=', windowStart)
+    .countDistinct('service_category as count')
+    .first();
+  const catCount = parseInt(serviceCategories.count) || 0;
+  const serviceDiversity = Math.min(100, catCount * 20);
+
+  // Rating participation — percentage of completed jobs that they rated
+  const completedJobs = await knex('jobs')
+    .where({ buyer_id: buyerId })
+    .where('created_at', '>=', windowStart)
+    .whereIn('status', ['completed', 'payout_sent'])
+    .count('id as total')
+    .first();
+  const ratedJobs = await knex('jobs')
+    .where({ buyer_id: buyerId })
+    .where('created_at', '>=', windowStart)
+    .whereIn('status', ['completed', 'payout_sent'])
+    .whereNotNull('buyer_rating')
+    .count('id as rated')
+    .first();
+  const totalCompleted = parseInt(completedJobs.total) || 0;
+  const totalRated = parseInt(ratedJobs.rated) || 0;
+  const ratingParticipation = totalCompleted > 0 ? Math.min(100, Math.round((totalRated / totalCompleted) * 100)) : 0;
+
+  // Digital engagement — total bookings made
+  const totalBookings = await knex('jobs')
+    .where({ buyer_id: buyerId })
+    .where('created_at', '>=', windowStart)
+    .count('id as count')
+    .first();
+  const bookingCount = parseInt(totalBookings.count) || 0;
+  const engagement = Math.min(100, bookingCount * 10);
+
+  // Worker diversity — how many different workers they've hired
+  const uniqueWorkers = await knex('jobs')
+    .where({ buyer_id: buyerId })
+    .where('created_at', '>=', windowStart)
+    .whereIn('status', ['completed', 'payout_sent'])
+    .countDistinct('worker_id as count')
+    .first();
+  const workerCount = parseInt(uniqueWorkers.count) || 0;
+  const workerDiversity = Math.min(100, workerCount * 15);
+
+  const score = Math.round(
+    (bookingConsistency * 20 +
+     spendGrowth * 15 +
+     serviceDiversity * 15 +
+     ratingParticipation * 20 +
+     engagement * 15 +
+     workerDiversity * 15) / 100
+  );
+
+  const clampedScore = Math.min(100, Math.max(0, score));
+
+  return {
+    score: clampedScore,
+    breakdown: {
+      booking_consistency: bookingConsistency,
+      spend_growth: spendGrowth,
+      service_diversity: serviceDiversity,
+      rating_participation: ratingParticipation,
+      digital_engagement: engagement,
+      worker_diversity: workerDiversity
+    },
+    tier: getTier(clampedScore)
+  };
+}
+
 function standardDeviation(values) {
   if (values.length === 0) return 0;
   const mean = values.reduce((a, b) => a + b, 0) / values.length;
@@ -240,6 +350,7 @@ function standardDeviation(values) {
 module.exports = {
   calculateWorkerSabiScore,
   calculateTraderSabiScore,
+  calculateBuyerSabiScore,
   getTier,
   WEIGHTS
 };

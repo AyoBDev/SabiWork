@@ -36,6 +36,13 @@ router.post('/', async (req, res) => {
       metadata: { worker_name: worker?.name, service: service_category, area, amount: agreed_amount, channel: 'pwa' }
     });
 
+    // Update buyer sabi score (rewards booking activity)
+    if (buyer_id) {
+      try {
+        await sabiScoreService.calculateBuyerSabiScore(buyer_id);
+      } catch (_) {}
+    }
+
     res.status(201).json(job);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -91,15 +98,21 @@ router.post('/:id/rate', async (req, res) => {
     // Update job with rating
     await knex('jobs').where({ id: job.id }).update({ buyer_rating: rating });
 
-    // Apply trust event for rating
+    // Apply trust event for rating on worker
     const delta = rating > 3 ? (rating - 3) * 0.01 : (rating - 3) * 0.02;
     const trustResult = await trustService.applyTrustEvent(job.worker_id, 'rating_received', delta, job.id);
+
+    // Calculate buyer's sabi score (rewards rating participation)
+    let buyerSabi = null;
+    if (job.buyer_id) {
+      buyerSabi = await sabiScoreService.calculateBuyerSabiScore(job.buyer_id);
+    }
 
     // Broadcast to dashboard
     eventBus.emit('rating_received', {
       actor: 'Buyer',
-      description: `Job rated ${rating}/5 — trust score updated`,
-      metadata: { worker_id: job.worker_id, rating, trust_score: trustResult.newScore }
+      description: `Job rated ${rating}/5 — trust & sabi scores updated`,
+      metadata: { worker_id: job.worker_id, buyer_id: job.buyer_id, rating, trust_score: trustResult.newScore, buyer_sabi: buyerSabi?.score }
     });
 
     res.json({
@@ -108,7 +121,8 @@ router.post('/:id/rate', async (req, res) => {
         new_score: trustResult.newScore,
         delta,
         sabi_score: trustResult.sabiScore
-      }
+      },
+      buyer_sabi_score: buyerSabi?.score || null
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -176,6 +190,97 @@ router.post('/:id/complete', async (req, res) => {
   } catch (error) {
     console.error('Job completion error:', error);
     return res.status(500).json({ error: 'Failed to complete job', details: error.message });
+  }
+});
+
+/**
+ * GET /api/jobs/buyer/:buyerId
+ * Get all jobs for a buyer (their bookings)
+ */
+router.get('/buyer/:buyerId', async (req, res) => {
+  try {
+    const { buyerId } = req.params;
+    const { status, limit = 50 } = req.query;
+
+    let query = knex('jobs')
+      .where({ buyer_id: buyerId })
+      .orderBy('created_at', 'desc')
+      .limit(parseInt(limit));
+
+    if (status) query = query.where({ status });
+
+    const jobs = await query;
+
+    // Enrich with worker names
+    const workerIds = [...new Set(jobs.filter(j => j.worker_id).map(j => j.worker_id))];
+    const workers = workerIds.length
+      ? await knex('workers').whereIn('id', workerIds).select('id', 'name', 'primary_trade', 'phone')
+      : [];
+    const workerMap = Object.fromEntries(workers.map(w => [w.id, w]));
+
+    const enriched = jobs.map(j => ({
+      ...j,
+      worker_name: workerMap[j.worker_id]?.name || null,
+      worker_trade: workerMap[j.worker_id]?.primary_trade || null
+    }));
+
+    // Compute summary stats
+    const completed = jobs.filter(j => ['completed', 'payout_sent'].includes(j.status));
+    const totalSpent = completed.reduce((sum, j) => sum + (parseFloat(j.agreed_amount) || 0), 0);
+    const ratings = completed.filter(j => j.buyer_rating).map(j => j.buyer_rating);
+    const avgRating = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null;
+
+    return res.status(200).json({
+      jobs: enriched,
+      stats: {
+        total: jobs.length,
+        active: jobs.filter(j => ['created', 'in_progress', 'paid', 'in_escrow'].includes(j.status)).length,
+        completed: completed.length,
+        total_spent: totalSpent,
+        avg_rating: avgRating
+      }
+    });
+  } catch (error) {
+    console.error('Buyer jobs fetch error:', error);
+    return res.status(500).json({ error: 'Failed to fetch buyer jobs' });
+  }
+});
+
+/**
+ * GET /api/jobs/worker/:workerId
+ * Get all jobs for a worker
+ */
+router.get('/worker/:workerId', async (req, res) => {
+  try {
+    const { workerId } = req.params;
+    const { status, limit = 50 } = req.query;
+
+    let query = knex('jobs')
+      .where({ worker_id: workerId })
+      .orderBy('created_at', 'desc')
+      .limit(parseInt(limit));
+
+    if (status) query = query.where({ status });
+
+    const jobs = await query;
+
+    const completed = jobs.filter(j => ['completed', 'payout_sent'].includes(j.status));
+    const totalEarned = completed.reduce((sum, j) => sum + (parseFloat(j.payout_amount) || parseFloat(j.agreed_amount) || 0), 0);
+    const ratings = completed.filter(j => j.buyer_rating).map(j => j.buyer_rating);
+    const avgRating = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null;
+
+    return res.status(200).json({
+      jobs,
+      stats: {
+        total: jobs.length,
+        active: jobs.filter(j => ['created', 'in_progress', 'paid', 'in_escrow'].includes(j.status)).length,
+        completed: completed.length,
+        total_earned: totalEarned,
+        avg_rating: avgRating
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to fetch worker jobs' });
   }
 });
 
