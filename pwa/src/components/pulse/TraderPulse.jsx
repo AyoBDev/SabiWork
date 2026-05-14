@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import useAppStore from '../../stores/appStore';
-import { useAgentChat } from '../../hooks/useAgentChat';
+import api from '../../services/api';
 
 const DEMO_ITEMS = [
   { id: 1, name: 'Tomatoes (basket)', price: 1200, unit: 'basket', stock: 8, maxStock: 50, demand: 'Selling fast', img: '/items/tomatoes.png' },
@@ -17,21 +17,66 @@ function getStockStatus(stock, maxStock) {
   return { label: 'Good', color: 'text-sabi-green', bg: 'bg-green-50', bar: 'bg-sabi-green' };
 }
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export default function TraderPulse({ user }) {
-  const setChatOpen = useAppStore((s) => s.setChatOpen);
-  const { send } = useAgentChat();
   const [items] = useState(DEMO_ITEMS);
   const [showLogSale, setShowLogSale] = useState(false);
+  const [agentState, setAgentState] = useState(null); // null | { steps: [], result: null, loading: bool }
 
   const totalItems = items.length;
   const lowStockItems = items.filter(i => getStockStatus(i.stock, i.maxStock).label !== 'Good');
   const lowStockNames = lowStockItems.slice(0, 3).map(i => i.name.split(' (')[0]);
 
-  function handleLogSaleSubmit(itemName, quantity, amount) {
-    const message = `sold ${quantity} ${itemName} for ${amount}`;
-    setChatOpen(true);
-    send(message);
+  async function handleLogSaleSubmit(itemName, quantity, amount) {
     setShowLogSale(false);
+
+    const message = `sold ${quantity} ${itemName} for ${amount}`;
+
+    // Start agent animation
+    setAgentState({ steps: ['Processing your sale...'], result: null, loading: true });
+
+    try {
+      const userState = useAppStore.getState().user;
+
+      const response = await api.sendChat(message, {
+        user_id: userState?.phone || userState?.id,
+        user_type: 'trader'
+      });
+
+      // Animate through steps
+      if (response.steps && response.steps.length > 0) {
+        for (let i = 0; i < response.steps.length; i++) {
+          await delay(700);
+          setAgentState(prev => ({ ...prev, steps: [...prev.steps, response.steps[i]] }));
+        }
+      }
+
+      await delay(500);
+
+      // Show result
+      setAgentState(prev => ({
+        ...prev,
+        loading: false,
+        result: {
+          message: response.message,
+          data: response.data,
+          type: response.type
+        }
+      }));
+
+      // Auto-dismiss after 5s
+      setTimeout(() => setAgentState(null), 5000);
+    } catch (err) {
+      setAgentState({
+        steps: ['Processing your sale...'],
+        loading: false,
+        result: { message: 'Something went wrong. Please try again.', type: 'error' }
+      });
+      setTimeout(() => setAgentState(null), 4000);
+    }
   }
 
   return (
@@ -84,6 +129,65 @@ export default function TraderPulse({ user }) {
           </button>
         </div>
       </div>
+
+      {/* Agent action overlay */}
+      {agentState && (
+        <div className="mx-4 mt-4 bg-white rounded-xl border border-sabi-green/30 shadow-lg overflow-hidden">
+          <div className="bg-sabi-green/5 px-4 py-2.5 border-b border-sabi-green/10 flex items-center gap-2">
+            {agentState.loading ? (
+              <div className="w-4 h-4 border-2 border-sabi-green border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B7A3D" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            )}
+            <span className="text-xs font-semibold text-sabi-green">
+              {agentState.loading ? 'SabiWork AI is working...' : 'Done'}
+            </span>
+            {!agentState.loading && (
+              <button onClick={() => setAgentState(null)} className="ml-auto text-warm-muted hover:text-warm-text">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            )}
+          </div>
+
+          <div className="px-4 py-3 space-y-2">
+            {/* Steps */}
+            {agentState.steps.map((step, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  i === agentState.steps.length - 1 && agentState.loading ? 'bg-sabi-green animate-pulse' : 'bg-warm-muted'
+                }`} />
+                <p className="text-xs text-warm-muted">{step}</p>
+              </div>
+            ))}
+
+            {/* Result */}
+            {agentState.result && (
+              <div className="mt-3 pt-3 border-t border-warm-border/50">
+                <p className="text-sm text-warm-text leading-relaxed">{agentState.result.message}</p>
+                {agentState.result.data && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {agentState.result.data.today_total != null && (
+                      <span className="text-[10px] bg-sabi-green/10 text-sabi-green font-medium px-2 py-1 rounded-full">
+                        Today: ₦{Number(agentState.result.data.today_total).toLocaleString()}
+                      </span>
+                    )}
+                    {agentState.result.data.sabi_score_after != null && (
+                      <span className="text-[10px] bg-blue-50 text-blue-600 font-medium px-2 py-1 rounded-full">
+                        Sabi Score: {agentState.result.data.sabi_score_after}
+                      </span>
+                    )}
+                    {agentState.result.data.today_count != null && (
+                      <span className="text-[10px] bg-warm-bg text-warm-text font-medium px-2 py-1 rounded-full">
+                        {agentState.result.data.today_count} sales today
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Restocking alert */}
       {lowStockItems.length > 0 && (
