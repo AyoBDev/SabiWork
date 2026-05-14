@@ -126,6 +126,8 @@ async function main() {
     browser: ['SabiWork', 'Chrome', '1.0.0']
   });
 
+  let paired = false;
+
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
@@ -136,26 +138,34 @@ async function main() {
     }
 
     if (connection === 'open') {
+      paired = true;
       console.log('\n  ✓ WhatsApp paired successfully!');
       console.log('  ✓ Session saved to Railway database.');
       console.log('  ✓ Deploy to Railway — bot will auto-connect.\n');
 
-      // Keep alive briefly to ensure all keys are saved
-      setTimeout(async () => {
-        await sock.end();
-        await knex.destroy();
+      // Wait for creds to flush then exit hard
+      setTimeout(() => {
+        console.log('[Pair] Done. Exiting.');
         process.exit(0);
-      }, 3000);
+      }, 5000);
     }
 
     if (connection === 'close') {
+      if (paired) {
+        // Already paired, just exit
+        console.log('[Pair] Connection closed after pairing. Session is saved. Exiting.');
+        await knex.destroy();
+        process.exit(0);
+      }
+
       const statusCode = (lastDisconnect?.error)?.output?.statusCode;
       if (statusCode === DisconnectReason.loggedOut) {
         console.error('\n  ✗ Logged out. Clear session and try again.\n');
         await knex.destroy();
         process.exit(1);
       }
-      // Retry on other disconnects
+
+      // Only retry if we haven't paired yet
       console.log('[Pair] Reconnecting...');
       main();
     }

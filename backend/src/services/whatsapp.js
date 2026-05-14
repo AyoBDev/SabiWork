@@ -9,6 +9,8 @@ const eventBus = require('../utils/eventBus');
 let sock = null;
 let connectionStatus = 'disconnected'; // disconnected, connecting, qr_ready, open
 let qrCode = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 // DB-based auth state (works on Railway's ephemeral filesystem)
 async function useDBAuthState() {
@@ -338,14 +340,19 @@ async function startWhatsApp() {
         connectionStatus = 'disconnected';
         qrCode = null;
 
-        if (shouldReconnect) {
-          setTimeout(() => startWhatsApp(), 3000);
+        if (shouldReconnect && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          reconnectAttempts++;
+          console.log(`[WhatsApp] Reconnect attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+          setTimeout(() => startWhatsApp(), 5000);
+        } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+          console.log('[WhatsApp] Max reconnect attempts reached. Waiting for manual start via /api/whatsapp/start');
         }
       }
 
       if (connection === 'open') {
         connectionStatus = 'open';
         qrCode = null;
+        reconnectAttempts = 0;
         console.log('[WhatsApp] Connected successfully!');
         eventBus.emit('whatsapp_connected', {
           actor: 'System',
