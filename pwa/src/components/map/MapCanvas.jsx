@@ -34,7 +34,7 @@ const ICON_SVGS = {
   user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'
 };
 
-export default function MapCanvas() {
+export default function MapCanvas({ onMarkerClick }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -121,18 +121,13 @@ export default function MapCanvas() {
 
       el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
       el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
-
-      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false, className: 'sw-popup' }).setHTML(`
-        <div style="padding:8px 12px; font-family: -apple-system, system-ui, sans-serif;">
-          <strong style="font-size:14px;">${worker.name}</strong><br/>
-          <span style="color:${style.color};font-size:12px;">${worker.primary_trade}</span><br/>
-          <span style="font-size:11px;color:#666;">${worker.total_jobs} jobs · ₦${(worker.total_income / 1000).toFixed(0)}k earned</span>
-        </div>
-      `);
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onMarkerClick?.(worker);
+      });
 
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([worker.location_lng, worker.location_lat])
-        .setPopup(popup)
         .addTo(mapRef.current);
 
       markersRef.current.push(marker);
