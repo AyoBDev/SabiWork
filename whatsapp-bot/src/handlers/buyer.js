@@ -109,13 +109,18 @@ export async function handleBuyer(phone, text, state, conversations) {
         (response.message ? `\n\n${response.message}` : '');
     }
 
+    // If backend found no match but user is looking for a trade, use demo workers
+    const trade = detectTrade(text);
+    if (trade) {
+      return fallbackResponse(text, phone, state, conversations);
+    }
+
     if (response.message) {
       return response.message;
     }
 
     return fallbackResponse(text, phone, state, conversations);
   } catch (err) {
-    // Backend down — use demo workers
     return fallbackResponse(text, phone, state, conversations);
   }
 }
