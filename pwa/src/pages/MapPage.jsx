@@ -11,7 +11,10 @@ export default function MapPage() {
   const { setWorkers, setLoading, setChatOpen, agentSelectedWorker, setAgentSelectedWorker } = useAppStore();
   const [selectedWorker, setSelectedWorker] = useState(null);
 
+  const workers = useAppStore((s) => s.workers);
+
   useEffect(() => {
+    if (workers.length > 0) return;
     async function loadWorkers() {
       setLoading(true);
       try {

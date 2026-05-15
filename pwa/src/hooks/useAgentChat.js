@@ -158,7 +158,12 @@ export function useAgentChat() {
     await delay(1200);
     setChatOpen(false);
 
-    // Map animation
+    // Navigate to map page so markers are visible
+    setPendingNavigation('/');
+    await delay(600);
+
+    // Map animation — give markers time to render after workers state update
+    await delay(500);
     for (let i = 0; i < workers.length; i++) {
       const w = workers[i];
       setHighlightedWorkerId(w.id || w.phone || `${w.location_lat}_${w.location_lng}`);
