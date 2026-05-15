@@ -85,7 +85,35 @@ export async function handleBuyer(phone, text, state, conversations) {
     return `✅ Booking request sent to *${worker.name}*!\n\nThey'll be notified and you'll get a confirmation shortly. 👍`;
   }
 
-  // Default: Send to AI chat endpoint
+  // If a trade is detected, always guarantee a worker result
+  const trade = detectTrade(text);
+  if (trade) {
+    const workers = getDemoWorkers(trade);
+    conversations.set(phone, {
+      ...state,
+      buyerContext: { workers, currentIdx: 0 }
+    });
+
+    // Fire API in background — if it returns a real worker, great; otherwise demo is already set
+    backendAPI.chat(text, { user_id: phone, user_type: 'unknown', channel: 'whatsapp' })
+      .then(response => {
+        if (response?.type === 'worker_card' && response.data?.name) {
+          const apiWorkers = [response.data, ...(response.data.alternatives || [])].filter(Boolean);
+          conversations.set(phone, { ...state, buyerContext: { workers: apiWorkers, currentIdx: 0 } });
+        }
+      })
+      .catch(() => {});
+
+    backendAPI.notifyEvent('message_parsed', {
+      actor: phone,
+      description: `WhatsApp: "${text}"`,
+      metadata: { channel: 'whatsapp', phone }
+    });
+
+    return formatWorkerMatch(workers[0], 1, workers.length);
+  }
+
+  // No trade detected — send to AI chat endpoint
   backendAPI.notifyEvent('message_parsed', {
     actor: phone,
     description: `WhatsApp: "${text}"`,
@@ -99,7 +127,7 @@ export async function handleBuyer(phone, text, state, conversations) {
       channel: 'whatsapp'
     });
 
-    if (response.type === 'worker_card' && response.data) {
+    if (response.type === 'worker_card' && response.data?.name) {
       const workers = [response.data, ...(response.data.alternatives || [])].filter(Boolean);
       conversations.set(phone, {
         ...state,
@@ -107,12 +135,6 @@ export async function handleBuyer(phone, text, state, conversations) {
       });
       return formatWorkerMatch(response.data, 1, workers.length) +
         (response.message ? `\n\n${response.message}` : '');
-    }
-
-    // If backend found no match but user is looking for a trade, use demo workers
-    const trade = detectTrade(text);
-    if (trade) {
-      return fallbackResponse(text, phone, state, conversations);
     }
 
     if (response.message) {

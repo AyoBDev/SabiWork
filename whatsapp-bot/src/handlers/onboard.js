@@ -55,7 +55,8 @@ export async function handleOnboard(phone, text, state, conversations) {
 
   switch (step) {
     case 1:
-      // Welcome — ask how they want to register
+      // Welcome — ask how they want to register, advance to step 2
+      conversations.set(phone, { flow: 'onboard', step: 2, data });
       return `🎉 Welcome to *SabiWork*!
 
 Let's get you registered so you can start receiving jobs and building your financial identity.

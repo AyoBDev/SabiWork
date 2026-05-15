@@ -60,13 +60,20 @@ export async function handleMessage(phone, text, pushName = '') {
     return handleInvest(phone, text, state, conversations);
   }
 
-  // 3. Registration trigger
+  // 3. Trade/buyer intent takes priority over registration
+  const hasTradeTrigger = ['plumb', 'electric', 'carpenter', 'carpentry', 'clean', 'tailor', 'paint', 'weld', 'til'].some(t => text.toLowerCase().includes(t));
+  if (hasTradeTrigger) {
+    conversations.delete(phone);
+    return handleBuyer(phone, text, null, conversations);
+  }
+
+  // 4. Registration trigger
   if (REGISTER_KEYWORDS.some((k) => text.toLowerCase().includes(k)) && !state) {
     conversations.set(phone, { flow: 'onboard', step: 1, data: {} });
     return handleOnboard(phone, text, { flow: 'onboard', step: 1, data: {} }, conversations);
   }
 
-  // 4. Trader message (sales pattern: "sold X bags of Y at Z")
+  // 5. Trader message (sales pattern: "sold X bags of Y at Z")
   if (isTraderMessage(text)) {
     return handleTrader(phone, text, state, conversations, pushName);
   }
