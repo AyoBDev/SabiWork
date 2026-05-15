@@ -69,6 +69,12 @@ const useAppStore = create((set, get) => ({
   salesLog: [],
   addSale: (sale) => set((s) => ({ salesLog: [sale, ...s.salesLog] })),
 
+  // Agent overlay (on-screen steps visible when chat is closed)
+  agentOverlaySteps: [],
+  agentOverlayVisible: false,
+  addOverlayStep: (step) => set((s) => ({ agentOverlaySteps: [...s.agentOverlaySteps, step], agentOverlayVisible: true })),
+  clearOverlay: () => set({ agentOverlaySteps: [], agentOverlayVisible: false }),
+
   // Navigation trigger (for AI agent to push user to a tab)
   pendingNavigation: null,
   setPendingNavigation: (path) => set({ pendingNavigation: path }),

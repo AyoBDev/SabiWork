@@ -15,6 +15,7 @@ import AuthPage from './pages/AuthPage';
 import BottomNav from './components/ui/BottomNav';
 import ChatSheet from './components/chat/ChatSheet';
 import AIButton from './components/chat/AIButton';
+import AgentOverlay from './components/chat/AgentOverlay';
 import OnboardPage from './components/agent/OnboardPage';
 import AgentStats from './components/agent/AgentStats';
 import AgentNav from './components/agent/AgentNav';
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="/stats" element={<AgentStats />} />
       </Routes>
       <NavigationListener />
+      <AgentOverlay />
       <ChatSheet />
       <AIButton />
       {isAgent ? <AgentNav /> : <BottomNav />}
