@@ -10,14 +10,14 @@ export async function handleWorkerCommand(phone, command, state, conversations) 
         backendAPI.notifyEvent('worker_availability_changed', {
           actor: worker.name,
           description: `${worker.name} is now AVAILABLE via WhatsApp`,
-          metadata: { worker_name: worker.name, is_available: true, area: worker.service_areas?.[0], channel: 'whatsapp' }
+          metadata: { worker_name: worker.name, is_available: true, channel: 'whatsapp' }
         });
         return `✅ *You're now READY!*
 
 You'll receive job alerts for your area. Stay close to your phone! 📱
 
-Current Trust Score: ${(worker.trust_score * 100).toFixed(0)}%
-SabiScore: ${worker.sabi_score}/100`;
+🛡️ Trust Score: ${(parseFloat(worker.trust_score || 0) * 100).toFixed(0)}%
+📊 SabiScore: ${worker.sabi_score || 0}/100`;
       } catch (err) {
         return `⚠️ Could not update status. Are you registered? Send "register" to start.`;
       }
@@ -29,7 +29,7 @@ SabiScore: ${worker.sabi_score}/100`;
         backendAPI.notifyEvent('worker_availability_changed', {
           actor: worker.name,
           description: `${worker.name} is now BUSY via WhatsApp`,
-          metadata: { worker_name: worker.name, is_available: false, area: worker.service_areas?.[0], channel: 'whatsapp' }
+          metadata: { worker_name: worker.name, is_available: false, channel: 'whatsapp' }
         });
         return `⏸️ *Status: BUSY*
 
@@ -42,8 +42,8 @@ Rest well! 💤`;
 
     case 'SCORE':
       try {
-        const scores = await backendAPI.getScores(phone);
-        return formatScores(scores);
+        const worker = await backendAPI.getWorkerByPhone(phone);
+        return formatScores(worker);
       } catch (err) {
         return `⚠️ Could not fetch your scores. Are you registered?`;
       }
@@ -53,12 +53,6 @@ Rest well! 💤`;
         const ctx = state?.jobAlert;
         if (!ctx) return `No pending job alert. Wait for a new one!`;
 
-        const response = await backendAPI.chat('ACCEPT', {
-          action: 'accept_job',
-          job_id: ctx.job_id,
-          phone
-        });
-
         backendAPI.notifyEvent('job_status_changed', {
           actor: phone,
           description: `Worker accepted job via WhatsApp`,
@@ -66,7 +60,7 @@ Rest well! 💤`;
         });
 
         conversations.set(phone, { ...state, jobAlert: null });
-        return response.messages?.[0]?.text || `✅ Job accepted! Head to the location. The buyer has been notified.`;
+        return `✅ Job accepted! Head to the location. The buyer has been notified.`;
       } catch (err) {
         return `⚠️ Could not accept job: ${err.message}`;
       }
@@ -87,32 +81,32 @@ Rest well! 💤`;
   }
 }
 
-function formatScores(scores) {
-  if (!scores) return 'No score data available.';
+function formatScores(worker) {
+  if (!worker) return 'No score data available.';
 
-  const trustBar = '█'.repeat(Math.round(scores.trust_score * 10)) + '░'.repeat(10 - Math.round(scores.trust_score * 10));
-  const sabiBar = '█'.repeat(Math.round(scores.sabi_score / 10)) + '░'.repeat(10 - Math.round(scores.sabi_score / 10));
+  const trustScore = parseFloat(worker.trust_score || 0);
+  const sabiScore = worker.sabi_score || 0;
+  const trustBar = '█'.repeat(Math.round(trustScore * 10)) + '░'.repeat(10 - Math.round(trustScore * 10));
+  const sabiBar = '█'.repeat(Math.round(sabiScore / 10)) + '░'.repeat(10 - Math.round(sabiScore / 10));
 
-  let tier = 'Emerging';
-  if (scores.trust_score >= 0.8) tier = '🥇 Elite';
-  else if (scores.trust_score >= 0.6) tier = '✅ Verified';
-  else if (scores.trust_score >= 0.3) tier = '⭐ Trusted';
-  else tier = '🌱 Emerging';
+  let tier = '🌱 Emerging';
+  if (trustScore >= 0.8) tier = '🥇 Elite';
+  else if (trustScore >= 0.6) tier = '✅ Verified';
+  else if (trustScore >= 0.3) tier = '⭐ Trusted';
 
   return `📊 *Your SabiWork Scores*
 
-🛡️ *Trust Score:* ${(scores.trust_score * 100).toFixed(0)}%
+🛡️ *Trust Score:* ${(trustScore * 100).toFixed(0)}%
 [${trustBar}]
 Tier: ${tier}
 
-💳 *SabiScore:* ${scores.sabi_score}/100
+💳 *SabiScore:* ${sabiScore}/100
 [${sabiBar}]
-${scores.sabi_score >= 50 ? '✅ Microloan eligible!' : `📍 ${50 - scores.sabi_score} points to loan`}
+${sabiScore >= 50 ? '✅ Microloan eligible!' : `📍 ${50 - sabiScore} points to loan`}
 
 📈 *Stats:*
-• Jobs completed: ${scores.total_jobs || 0}
-• Total earned: ₦${(scores.total_income || 0).toLocaleString()}
-• This month: ₦${(scores.monthly_income || 0).toLocaleString()}
+• Jobs completed: ${worker.total_jobs || 0}
+• Total earned: ₦${(worker.total_income || 0).toLocaleString()}
 
 Keep working, keep growing! 💪`;
 }

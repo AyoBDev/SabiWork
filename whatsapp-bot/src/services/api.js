@@ -14,13 +14,13 @@ async function request(method, path, body = null) {
   const response = await fetch(url, options);
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `API ${response.status}`);
+    throw new Error(error.error || error.message || `API ${response.status}`);
   }
   return response.json();
 }
 
 export const backendAPI = {
-  // Chat (AI matching)
+  // Chat (AI matching + sale logging)
   chat: (message, context) =>
     request('POST', '/api/chat', { message, ...context }),
   chatWithAudio: (audioBase64, context) =>
@@ -38,11 +38,11 @@ export const backendAPI = {
 
   // Traders
   registerTrader: (data) =>
-    request('POST', '/api/traders', data),
-  logSale: (data) =>
-    request('POST', '/api/traders/sales', data),
+    request('POST', '/api/traders/register', data),
+  logSale: (phone, message) =>
+    request('POST', '/api/traders/log-sale', { phone, message }),
   getTraderReport: (phone) =>
-    request('GET', `/api/traders/phone/${phone}/report`),
+    request('GET', `/api/traders/report?phone=${phone}`),
 
   // Seekers
   registerSeeker: (data) =>
@@ -52,7 +52,7 @@ export const backendAPI = {
 
   // Scores
   getScores: (phone) =>
-    request('GET', `/api/workers/phone/${phone}/scores`),
+    request('GET', `/api/workers/phone/${phone}`),
 
   // Invest
   createRound: (data) =>

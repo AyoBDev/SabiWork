@@ -4,7 +4,7 @@ import { backendAPI } from '../services/api.js';
 export async function handleBuyer(phone, text, state, conversations) {
   const upperText = text.toUpperCase().trim();
 
-  // Handle BOOK command (user wants to book a specific worker)
+  // Handle BOOK command
   if (upperText.startsWith('BOOK') || upperText === 'NEXT') {
     const ctx = state?.buyerContext;
     if (!ctx) {
@@ -12,7 +12,6 @@ export async function handleBuyer(phone, text, state, conversations) {
     }
 
     if (upperText === 'NEXT') {
-      // Show next worker in list
       const nextIdx = (ctx.currentIdx || 0) + 1;
       if (nextIdx >= ctx.workers.length) {
         return `No more matches available. Try a different search?`;
@@ -25,41 +24,18 @@ export async function handleBuyer(phone, text, state, conversations) {
       return formatWorkerMatch(worker, nextIdx + 1, ctx.workers.length);
     }
 
-    // BOOK — proceed to payment
+    // BOOK
     const worker = ctx.workers[ctx.currentIdx || 0];
-    try {
-      const response = await backendAPI.chat(`BOOK ${worker.id}`, {
-        action: 'book',
-        worker_id: worker.id,
-        buyer_phone: phone
-      });
-
-      const paymentMsg = response.messages?.find((m) => m.type === 'payment_card');
-      if (paymentMsg) {
-        backendAPI.notifyEvent('payment_initiated', {
-          actor: phone,
-          description: `Buyer booking ${worker.name} via WhatsApp — ₦${Number(paymentMsg.data.amount).toLocaleString()}`,
-          metadata: { worker_name: worker.name, amount: paymentMsg.data.amount, channel: 'whatsapp' }
-        });
-        conversations.delete(phone);
-        return `💳 *Payment for ${worker.name}*
-
-Amount: *₦${Number(paymentMsg.data.amount).toLocaleString()}*
-Service: ${paymentMsg.data.service_category}
-
-Pay here: ${paymentMsg.data.checkout_url}
-
-After payment, ${worker.name.split(' ')[0]} will be notified and you'll get a confirmation. 👍`;
-      }
-
-      return response.messages?.[0]?.text || 'Booking initiated! You\'ll receive payment instructions shortly.';
-    } catch (err) {
-      return `⚠️ Booking failed. Try again shortly.`;
-    }
+    backendAPI.notifyEvent('payment_initiated', {
+      actor: phone,
+      description: `Buyer wants to book ${worker.name} via WhatsApp`,
+      metadata: { worker_name: worker.name, channel: 'whatsapp' }
+    });
+    conversations.delete(phone);
+    return `✅ Booking request sent to *${worker.name}*!\n\nThey'll be notified and you'll get a confirmation shortly. 👍`;
   }
 
-  // Default: Send natural language to AI
-  // Notify dashboard that a buyer message arrived
+  // Default: Send to AI chat endpoint
   backendAPI.notifyEvent('message_parsed', {
     actor: phone,
     description: `WhatsApp: "${text}"`,
@@ -67,40 +43,42 @@ After payment, ${worker.name.split(' ')[0]} will be notified and you'll get a co
   });
 
   try {
-    const response = await backendAPI.chat(text, { phone, channel: 'whatsapp' });
+    const response = await backendAPI.chat(text, {
+      user_id: phone,
+      user_type: 'unknown',
+      channel: 'whatsapp'
+    });
 
-    // Process response messages
-    const messages = response.messages || [response];
-    let reply = '';
-
-    for (const msg of messages) {
-      if (msg.type === 'text') {
-        reply += msg.text + '\n\n';
-      } else if (msg.type === 'worker_card') {
-        // Store context for BOOK/NEXT flow
-        const workers = response.workers || [msg.data];
-        conversations.set(phone, {
-          ...state,
-          buyerContext: { workers, currentIdx: 0 }
-        });
-        reply += formatWorkerMatch(msg.data, 1, workers.length);
-      }
+    // Chat endpoint returns { type, message, data, steps, suggestions }
+    if (response.type === 'worker_card' && response.data) {
+      const workers = [response.data, ...(response.data.alternatives || [])].filter(Boolean);
+      conversations.set(phone, {
+        ...state,
+        buyerContext: { workers, currentIdx: 0 }
+      });
+      return formatWorkerMatch(response.data, 1, workers.length) +
+        (response.message ? `\n\n${response.message}` : '');
     }
 
-    return reply.trim() || 'I couldn\'t understand that. Try telling me what service you need — e.g., "I need a plumber in Surulere"';
+    if (response.message) {
+      return response.message;
+    }
+
+    return 'I can help you find workers nearby. Try: "I need a plumber in Surulere"';
   } catch (err) {
     return `Sorry, I couldn't process that right now. Try again in a moment.\n\nTip: Tell me what you need like "I need a plumber in Surulere"`;
   }
 }
 
 function formatWorkerMatch(worker, idx, total) {
-  const stars = '⭐'.repeat(Math.round(worker.trust_score * 5));
+  const trust = worker.trust_score ? `${(parseFloat(worker.trust_score) * 100).toFixed(0)}%` : '—';
+  const dist = worker.distance_km ? `${worker.distance_km}km away` : 'Nearby';
   return `👷 *Match ${idx}/${total}: ${worker.name}*
 
-🔧 Trade: ${worker.primary_trade}
-${stars} Trust: ${(worker.trust_score * 100).toFixed(0)}%
-📍 ${worker.distance || 'Nearby'}
-💼 ${worker.total_jobs} jobs completed
+🔧 Trade: ${worker.primary_trade || 'Worker'}
+🛡️ Trust: ${trust}
+📍 ${dist}
+💼 ${worker.total_jobs || 0} jobs completed
 
 Reply:
 • *BOOK* — hire ${worker.name.split(' ')[0]}
