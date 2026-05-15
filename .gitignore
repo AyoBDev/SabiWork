@@ -42,3 +42,4 @@ docs/
 *.pid
 *.seed
 *.pid.lock
+worktrees/
