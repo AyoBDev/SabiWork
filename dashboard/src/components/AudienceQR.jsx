@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { QrCode, Users } from 'lucide-react';
 
-const LANDING_URL = process.env.NEXT_PUBLIC_LANDING_URL || '/try';
+const LANDING_URL = process.env.NEXT_PUBLIC_LANDING_URL || 'https://dashboard-production-35ce.up.railway.app/try';
 const QR_SRC = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(LANDING_URL)}&bgcolor=1a1a1a&color=ffffff`;
 
 export default function AudienceQR({ participantCount = 0 }) {
