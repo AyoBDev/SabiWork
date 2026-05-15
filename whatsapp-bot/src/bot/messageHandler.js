@@ -35,8 +35,18 @@ export async function handleMessage(phone, text, pushName = '') {
     }
   }
 
-  // 1. If in active onboarding flow, continue it
+  // 1. If in active onboarding flow, continue it — unless user is clearly asking for a service
   if (state && state.flow === 'onboard') {
+    // Break out of onboarding if user is asking for a worker or logging a sale
+    if (isTraderMessage(text)) {
+      conversations.delete(phone);
+      return handleTrader(phone, text, null, conversations, pushName);
+    }
+    const hasTrade = ['plumb', 'electric', 'carpenter', 'carpentry', 'clean', 'tailor', 'paint', 'weld', 'til'].some(t => text.toLowerCase().includes(t));
+    if (hasTrade || /find|i\s+need|get\s+me/i.test(text.toLowerCase())) {
+      conversations.delete(phone);
+      return handleBuyer(phone, text, null, conversations);
+    }
     return handleOnboard(phone, text, state, conversations);
   }
 
