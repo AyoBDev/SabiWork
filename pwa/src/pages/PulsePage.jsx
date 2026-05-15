@@ -6,10 +6,11 @@ import SeekerPulse from '../components/pulse/SeekerPulse';
 import BuyerPulse from '../components/pulse/BuyerPulse';
 
 export default function PulsePage() {
-  const { user } = useAppStore();
+  const { user, agentAction, salesLog } = useAppStore();
 
-  // Default to worker view for demo
-  const role = user?.role || 'worker';
+  // Show trader view if: user is trader, OR agent is logging a sale, OR sales have been logged this session
+  const isSaleContext = agentAction?.type?.includes('sale') || salesLog.length > 0;
+  const role = (user?.role === 'trader' || isSaleContext) ? 'trader' : (user?.role || 'worker');
 
   // Mock user data for demo if no user logged in
   const demoUser = user || {
