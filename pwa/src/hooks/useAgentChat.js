@@ -94,16 +94,16 @@ export function useAgentChat() {
     const trade = detectTrade(text) || 'worker';
     const tradeName = trade.replace(/ing$/, '').replace(/al$/, '') + 'er';
 
-    // Close chat immediately, show full-screen overlay
+    // Close chat, navigate to map immediately so user sees the screen
     setChatOpen(false);
-    await delay(400);
-
     clearOverlay();
+    setPendingNavigation('/');
+    await delay(300);
+
     overlayStep(`Looking for ${tradeName}s nearby...`, 'searching');
     await delay(1000);
 
     overlayStep(`Scanning available ${tradeName}s in your area...`, 'searching');
-    await delay(1200);
 
     // Try API first, fall back to demo data
     const apiResponse = await apiPromise;
@@ -131,38 +131,31 @@ export function useAgentChat() {
       workers = getDemoWorkers(trade);
     }
 
-    overlayStep(`Found ${workers.length} ${tradeName}${workers.length > 1 ? 's' : ''}. Evaluating...`, 'success');
+    overlayStep(`Found ${workers.length} ${tradeName}${workers.length > 1 ? 's' : ''}`, 'success');
+    setWorkers(workers);
     await delay(800);
 
-    setWorkers(workers);
-    await delay(500);
-
-    // Map animation — highlight each worker
+    // Highlight each worker on the visible map
     for (let i = 0; i < Math.min(workers.length, 3); i++) {
       const w = workers[i];
       const dist = w.distance_km ? `${w.distance_km}km away` : '';
       const rating = w.avg_rating ? `${w.avg_rating}★` : '';
       const info = [dist, rating].filter(Boolean).join(' · ');
-      overlayStep(`Checking ${w.name}${info ? ' — ' + info : ''}`, 'searching');
+      overlayStep(`${w.name} — ${info}`, 'searching');
       setHighlightedWorkerId(w.id || w.phone || `${w.location_lat}_${w.location_lng}`);
       await delay(1500);
     }
 
+    // Best match
     setHighlightedWorkerId(null);
     overlayStep(`Best match: ${workers[0].name}`, 'complete');
-    await delay(800);
-
-    // Highlight the best match and open worker sheet
-    overlayStep(`Opening ${workers[0].name}'s profile...`, 'action');
-    setHighlightedWorkerId(workers[0].id || workers[0].phone || `${workers[0].location_lat}_${workers[0].location_lng}`);
     await delay(1000);
 
+    // Open worker sheet on the visible map
+    setHighlightedWorkerId(workers[0].id || workers[0].phone || `${workers[0].location_lat}_${workers[0].location_lng}`);
+    await delay(600);
     setHighlightedWorkerId(null);
     clearOverlay();
-
-    // Navigate to map and open worker sheet
-    setPendingNavigation('/');
-    await delay(500);
     setAgentSelectedWorker(workers[0]);
 
     const resultText = apiResponse?.message ||
@@ -180,16 +173,14 @@ export function useAgentChat() {
   }
 
   async function handleLogSale(text, apiPromise) {
-    // Close chat immediately
+    // Close chat, navigate to Pulse immediately so user sees the screen
     setChatOpen(false);
+    clearOverlay();
+    setPendingNavigation('/pulse');
     await delay(300);
 
-    clearOverlay();
     overlayStep('Processing your sale...', 'thinking');
-    await delay(800);
-
-    overlayStep('Parsing sale details...', 'searching');
-    await delay(900);
+    await delay(600);
 
     // Try API
     const apiResponse = await apiPromise;
@@ -219,26 +210,28 @@ export function useAgentChat() {
       resultMessage = `Nice one! ${sale.quantity}x ${sale.item_name} logged — ₦${sale.amount.toLocaleString()}. You don sell ₦${todayTotal.toLocaleString()} today. Sabi Score: ${sabiScore}. Keep going!`;
     }
 
-    overlayStep(`Detected: ${sale.quantity}x ${sale.item_name} — ₦${Number(sale.amount).toLocaleString()}`, 'success');
-    await delay(700);
+    // Open the sale form on the visible Pulse page
+    overlayStep('Opening sale form...', 'action');
+    setAgentAction({ type: 'open_log_sale' });
+    await delay(800);
 
-    // Show sale form filling visually in overlay
-    overlayStep('Filling item...', 'action');
+    // Fill fields one by one on the visible form
+    overlayStep(`Filling: ${sale.item_name}`, 'action');
     setAgentAction({ type: 'fill_sale', data: { item_name: sale.item_name } });
     await delay(900);
 
-    overlayStep('Filling quantity...', 'action');
+    overlayStep(`Quantity: ${sale.quantity}`, 'action');
     setAgentAction({ type: 'fill_sale', data: { item_name: sale.item_name, quantity: sale.quantity } });
     await delay(900);
 
-    overlayStep('Filling amount...', 'action');
+    overlayStep(`Amount: ₦${Number(sale.amount).toLocaleString()}`, 'action');
     setAgentAction({ type: 'fill_sale', data: { item_name: sale.item_name, quantity: sale.quantity, amount: sale.amount } });
     await delay(900);
 
-    // Submit
-    overlayStep('Logging sale...', 'action');
+    // Submit the form
+    overlayStep('Submitting...', 'action');
     setAgentAction({ type: 'submit_sale' });
-    await delay(800);
+    await delay(600);
 
     // Log the sale to store
     addSale({
@@ -253,12 +246,9 @@ export function useAgentChat() {
     });
 
     overlayStep('Sale logged!', 'complete');
-    await delay(1200);
+    await delay(1000);
     clearOverlay();
     setAgentAction(null);
-
-    // Navigate to inventory to show the logged sale
-    setPendingNavigation('/pulse');
 
     addMessage({
       type: 'agent_result',

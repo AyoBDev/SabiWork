@@ -21,24 +21,24 @@ export default function TraderPulse({ user }) {
   const salesLog = useAppStore((s) => s.salesLog);
   const addSale = useAppStore((s) => s.addSale);
   const agentAction = useAppStore((s) => s.agentAction);
-  const clearAgentAction = useAppStore((s) => s.clearAgentAction);
   const [items] = useState(DEMO_ITEMS);
   const [showLogSale, setShowLogSale] = useState(false);
   const [agentFill, setAgentFill] = useState(null);
 
   // Agent automation: open sale sheet, fill fields, submit
   useEffect(() => {
-    if (!agentAction) return;
+    if (!agentAction) {
+      setAgentFill(null);
+      return;
+    }
     if (agentAction.type === 'open_log_sale') {
       setShowLogSale(true);
-      clearAgentAction();
     } else if (agentAction.type === 'fill_sale') {
+      setShowLogSale(true);
       setAgentFill(agentAction.data);
-      clearAgentAction();
     } else if (agentAction.type === 'submit_sale') {
       setShowLogSale(false);
       setAgentFill(null);
-      clearAgentAction();
     }
   }, [agentAction]);
 
@@ -251,33 +251,26 @@ function LogSaleSheet({ open, onClose, items, onSubmit, agentFill }) {
   const [loading, setLoading] = useState(false);
   const [agentTyping, setAgentTyping] = useState(null);
 
-  // Agent auto-fill animation
+  // Agent auto-fill: react to progressive data from the hook
   useEffect(() => {
-    if (!agentFill || !open) return;
-    let cancelled = false;
-
-    async function animateFill() {
-      setAgentTyping('item');
-      await new Promise(r => setTimeout(r, 400));
-      if (cancelled) return;
-      setItem(agentFill.item_name || 'Rice (50kg bag)');
-
-      setAgentTyping('quantity');
-      await new Promise(r => setTimeout(r, 500));
-      if (cancelled) return;
-      setQuantity(String(agentFill.quantity || 1));
-
-      setAgentTyping('amount');
-      await new Promise(r => setTimeout(r, 500));
-      if (cancelled) return;
-      setAmount(String(agentFill.amount || 5000));
-
+    if (!agentFill) {
       setAgentTyping(null);
+      return;
     }
-
-    animateFill();
-    return () => { cancelled = true; };
-  }, [agentFill, open]);
+    if (agentFill.item_name && !agentFill.quantity) {
+      setAgentTyping('item');
+      setItem(agentFill.item_name);
+    } else if (agentFill.quantity && !agentFill.amount) {
+      setAgentTyping('quantity');
+      setItem(agentFill.item_name || item);
+      setQuantity(String(agentFill.quantity));
+    } else if (agentFill.amount) {
+      setAgentTyping('amount');
+      setItem(agentFill.item_name || item);
+      setQuantity(String(agentFill.quantity || quantity));
+      setAmount(String(agentFill.amount));
+    }
+  }, [agentFill]);
 
   async function handleSubmit(e) {
     e.preventDefault();
