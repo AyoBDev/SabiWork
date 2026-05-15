@@ -14,7 +14,7 @@ const REASONING_TEMPLATES = {
   ],
   payment_received: [
     'Payment webhook received',
-    'Verifying Paystack signature...',
+    'Verifying Squad signature...',
     'Amount confirmed: \u20A6{amount}',
     'Matching to pending invoice \u2713',
     'Releasing escrow funds',
@@ -36,7 +36,7 @@ const REASONING_TEMPLATES = {
     'Processing payout...',
     'Calculating platform fee (2.5%)',
     'Net amount: \u20A6{amount}',
-    'Disbursing via Paystack \u2713',
+    'Disbursing via Squad \u2713',
     'Receipt sent to worker',
   ],
   score_updated: [
