@@ -1,7 +1,7 @@
 // dashboard/src/app/try/page.js
 import { Smartphone, MessageCircle } from 'lucide-react';
 
-const PWA_URL = process.env.NEXT_PUBLIC_PWA_URL || 'https://sabiwork-pwa.up.railway.app';
+const PWA_URL = process.env.NEXT_PUBLIC_PWA_URL || 'https://pwa-production-af30.up.railway.app/';
 const WHATSAPP_URL = 'https://wa.me/2347070979606?text=Join%20SabiWork%20Demo';
 
 export const metadata = {
