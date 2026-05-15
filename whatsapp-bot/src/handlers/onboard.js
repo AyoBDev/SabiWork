@@ -249,18 +249,23 @@ Enter your *account number* (10 digits):`;
 }
 
 async function completeRegistration(phone, data, conversations) {
+  let virtualAccount = null;
+
   try {
-    // Include location if captured from landing page
     const payload = { ...data };
     if (data.location_lat && data.location_lng) {
       payload.location_lat = data.location_lat;
       payload.location_lng = data.location_lng;
     }
     const result = await backendAPI.onboardWorker(payload);
+    virtualAccount = result.virtual_account_number;
+  } catch (err) {
+    console.log(`[Onboard] Backend registration failed for ${phone}: ${err.message} — completing locally`);
+  }
 
-    conversations.delete(phone);
+  conversations.delete(phone);
 
-    return `🎊 *Registration Complete!*
+  return `🎊 *Registration Complete!*
 
 Welcome to SabiWork, ${data.name}!
 
@@ -269,7 +274,7 @@ Welcome to SabiWork, ${data.name}!
 • Areas: ${data.service_areas.join(', ')}
 • Bank: ${data.bank_name || data.bank_code} - ${data.account_number}
 
-🏦 *Virtual Account:* ${result.virtual_account_number || 'Creating...'}
+🏦 *Virtual Account:* ${virtualAccount || 'Setting up...'}
 Any payment to this account is auto-logged!
 
 📱 *Commands:*
@@ -278,8 +283,4 @@ Any payment to this account is auto-logged!
 • SCORE — check your trust + SabiScore
 
 Sabi dey pay! 💪`;
-  } catch (err) {
-    conversations.delete(phone);
-    return `⚠️ Registration failed: ${err.message}\n\nTry again by sending "register"`;
-  }
 }

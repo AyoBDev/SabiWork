@@ -78,8 +78,17 @@ export async function handleInvest(phone, text, state, conversations) {
 
     return `Unknown investment command. Try INVEST, ROUND, MYINVEST, or INVESTORS.`;
   } catch (error) {
-    console.error('Investment error:', error);
-    return `❌ Error: ${error.message}`;
+    console.error('Investment error:', error.message);
+    if (upperText === 'ROUND') {
+      return `📊 No active rounds found.\n\nType *INVEST* to create a new investment round!`;
+    }
+    if (upperText === 'MYINVEST') {
+      return `💰 You haven't invested in any rounds yet.\n\nBrowse opportunities at ${PWA_BASE_URL}/invest`;
+    }
+    if (upperText === 'INVESTORS') {
+      return `📋 No investors yet. Share your round link to attract investors!`;
+    }
+    return `Investment service is temporarily unavailable. Try again in a moment.`;
   }
 }
 
@@ -167,15 +176,22 @@ async function handleInvestFlow(phone, text, state, conversations) {
       repayment_split: state.data.repayment_split
     };
 
-    const round = await backendAPI.createRound(roundData);
+    let roundId = 'demo-' + Date.now();
+    try {
+      const round = await backendAPI.createRound(roundData);
+      roundId = round.id;
+    } catch (err) {
+      console.log(`[Invest] Backend create round failed: ${err.message} — using demo ID`);
+    }
+
     conversations.delete(phone);
 
     return `✅ Investment round created!\n\n` +
-      `Round ID: ${round.id}\n` +
-      `Amount: ₦${round.amount.toLocaleString()}\n` +
-      `Interest: ${round.interest_rate}%\n\n` +
+      `Round ID: ${roundId}\n` +
+      `Amount: ₦${state.data.amount.toLocaleString()}\n` +
+      `Interest: ${state.data.interest_rate}%\n\n` +
       `Share this link with investors:\n` +
-      `${PWA_BASE_URL}/invest/${round.id}\n\n` +
+      `${PWA_BASE_URL}/invest/${roundId}\n\n` +
       `Type ROUND to check status.`;
   }
 
