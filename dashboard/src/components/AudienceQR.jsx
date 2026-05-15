@@ -4,8 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { QrCode, Users } from 'lucide-react';
 
-const WHATSAPP_URL = 'https://wa.me/2349137839404?text=Join%20SabiWork%20Demo';
-const QR_SRC = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(WHATSAPP_URL)}&bgcolor=1a1a1a&color=ffffff`;
+const LANDING_URL = process.env.NEXT_PUBLIC_LANDING_URL || '/try';
+const QR_SRC = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(LANDING_URL)}&bgcolor=1a1a1a&color=ffffff`;
 
 export default function AudienceQR({ participantCount = 0 }) {
   return (
@@ -25,16 +25,16 @@ export default function AudienceQR({ participantCount = 0 }) {
       <CardContent className="px-4 pb-4 flex flex-col items-center gap-3">
         <img
           src={QR_SRC}
-          alt="Scan to join the live demo via WhatsApp"
+          alt="Scan to try SabiWork"
           width={200}
           height={200}
           className="rounded-lg"
         />
         <p className="text-sm font-medium text-foreground">
-          Scan to join the live demo
+          Scan to try SabiWork
         </p>
         <p className="text-xs text-muted-foreground text-center">
-          Send any trade message to see it appear live!
+          Try via app or WhatsApp
         </p>
       </CardContent>
     </Card>
