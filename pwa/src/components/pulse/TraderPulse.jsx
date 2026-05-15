@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useAppStore from '../../stores/appStore';
 import api from '../../services/api';
 
@@ -20,8 +20,27 @@ function getStockStatus(stock, maxStock) {
 export default function TraderPulse({ user }) {
   const salesLog = useAppStore((s) => s.salesLog);
   const addSale = useAppStore((s) => s.addSale);
+  const agentAction = useAppStore((s) => s.agentAction);
+  const clearAgentAction = useAppStore((s) => s.clearAgentAction);
   const [items] = useState(DEMO_ITEMS);
   const [showLogSale, setShowLogSale] = useState(false);
+  const [agentFill, setAgentFill] = useState(null);
+
+  // Agent automation: open sale sheet, fill fields, submit
+  useEffect(() => {
+    if (!agentAction) return;
+    if (agentAction.type === 'open_log_sale') {
+      setShowLogSale(true);
+      clearAgentAction();
+    } else if (agentAction.type === 'fill_sale') {
+      setAgentFill(agentAction.data);
+      clearAgentAction();
+    } else if (agentAction.type === 'submit_sale') {
+      setShowLogSale(false);
+      setAgentFill(null);
+      clearAgentAction();
+    }
+  }, [agentAction]);
 
   const totalItems = items.length;
   const lowStockItems = items.filter(i => getStockStatus(i.stock, i.maxStock).label !== 'Good');
@@ -175,7 +194,7 @@ export default function TraderPulse({ user }) {
       </div>
 
       {/* Log Sale Sheet */}
-      <LogSaleSheet open={showLogSale} onClose={() => setShowLogSale(false)} items={items} onSubmit={handleManualLogSale} />
+      <LogSaleSheet open={showLogSale} onClose={() => setShowLogSale(false)} items={items} onSubmit={handleManualLogSale} agentFill={agentFill} />
     </div>
   );
 }
@@ -225,11 +244,40 @@ function SaleItem({ item }) {
   );
 }
 
-function LogSaleSheet({ open, onClose, items, onSubmit }) {
+function LogSaleSheet({ open, onClose, items, onSubmit, agentFill }) {
   const [item, setItem] = useState('');
   const [quantity, setQuantity] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+  const [agentTyping, setAgentTyping] = useState(null);
+
+  // Agent auto-fill animation
+  useEffect(() => {
+    if (!agentFill || !open) return;
+    let cancelled = false;
+
+    async function animateFill() {
+      setAgentTyping('item');
+      await new Promise(r => setTimeout(r, 400));
+      if (cancelled) return;
+      setItem(agentFill.item_name || 'Rice (50kg bag)');
+
+      setAgentTyping('quantity');
+      await new Promise(r => setTimeout(r, 500));
+      if (cancelled) return;
+      setQuantity(String(agentFill.quantity || 1));
+
+      setAgentTyping('amount');
+      await new Promise(r => setTimeout(r, 500));
+      if (cancelled) return;
+      setAmount(String(agentFill.amount || 5000));
+
+      setAgentTyping(null);
+    }
+
+    animateFill();
+    return () => { cancelled = true; };
+  }, [agentFill, open]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -279,7 +327,7 @@ function LogSaleSheet({ open, onClose, items, onSubmit }) {
             <select
               value={item}
               onChange={(e) => setItem(e.target.value)}
-              className="w-full h-12 px-4 rounded-xl border border-warm-border bg-warm-bg text-sm text-warm-text focus:outline-none focus:ring-2 focus:ring-sabi-green/30 focus:border-sabi-green"
+              className={`w-full h-12 px-4 rounded-xl border bg-warm-bg text-sm text-warm-text focus:outline-none focus:ring-2 focus:ring-sabi-green/30 focus:border-sabi-green transition-all ${agentTyping === 'item' ? 'border-sabi-green ring-2 ring-sabi-green/40' : 'border-warm-border'}`}
             >
               <option value="">Select an item</option>
               {items.map((i) => (
@@ -296,7 +344,7 @@ function LogSaleSheet({ open, onClose, items, onSubmit }) {
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="e.g. 3"
-              className="w-full h-12 px-4 rounded-xl border border-warm-border bg-warm-bg text-sm text-warm-text focus:outline-none focus:ring-2 focus:ring-sabi-green/30 focus:border-sabi-green"
+              className={`w-full h-12 px-4 rounded-xl border bg-warm-bg text-sm text-warm-text focus:outline-none focus:ring-2 focus:ring-sabi-green/30 focus:border-sabi-green transition-all ${agentTyping === 'quantity' ? 'border-sabi-green ring-2 ring-sabi-green/40' : 'border-warm-border'}`}
             />
           </div>
 
@@ -307,7 +355,7 @@ function LogSaleSheet({ open, onClose, items, onSubmit }) {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="e.g. 75000"
-              className="w-full h-12 px-4 rounded-xl border border-warm-border bg-warm-bg text-sm text-warm-text focus:outline-none focus:ring-2 focus:ring-sabi-green/30 focus:border-sabi-green"
+              className={`w-full h-12 px-4 rounded-xl border bg-warm-bg text-sm text-warm-text focus:outline-none focus:ring-2 focus:ring-sabi-green/30 focus:border-sabi-green transition-all ${agentTyping === 'amount' ? 'border-sabi-green ring-2 ring-sabi-green/40' : 'border-warm-border'}`}
             />
           </div>
 

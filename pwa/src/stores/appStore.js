@@ -75,6 +75,11 @@ const useAppStore = create((set, get) => ({
   addOverlayStep: (step) => set((s) => ({ agentOverlaySteps: [...s.agentOverlaySteps, step], agentOverlayVisible: true })),
   clearOverlay: () => set({ agentOverlaySteps: [], agentOverlayVisible: false }),
 
+  // Agent UI automation (drives visual interactions on components)
+  agentAction: null,
+  setAgentAction: (action) => set({ agentAction: action }),
+  clearAgentAction: () => set({ agentAction: null }),
+
   // Navigation trigger (for AI agent to push user to a tab)
   pendingNavigation: null,
   setPendingNavigation: (path) => set({ pendingNavigation: path }),
