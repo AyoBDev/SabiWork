@@ -39,19 +39,23 @@ export function useAgentChat() {
     addMessage({ type: 'agent_step', text, stepType, sender: 'ai' });
   }
 
-  async function handleFindWorker(text, apiResponse) {
+  async function handleFindWorker(text, apiPromise) {
     const trade = detectTrade(text) || 'worker';
     const tradeName = trade.replace(/ing$/, '').replace(/al$/, '') + 'er';
 
     addStep(`Looking for ${tradeName}s nearby...`, 'searching');
     await delay(1000);
 
-    // Use API response if available, otherwise use local workers
+    addStep(`Scanning available ${tradeName}s in your area...`, 'searching');
+    await delay(1200);
+
+    // Wait for API now
+    const apiResponse = await apiPromise;
+
     let workers = [];
     if (apiResponse?.type === 'worker_card' && apiResponse.data) {
       workers = [apiResponse.data, ...(apiResponse.data.alternatives || [])].filter(Boolean);
     } else {
-      // Fallback: try to get workers from the local API
       try {
         const data = await api.getWorkers({ available: true });
         const all = data.workers || data || [];
@@ -73,57 +77,70 @@ export function useAgentChat() {
         text: apiResponse?.message || `No ${tradeName}s found near you. Try again later or widen your search area.`,
         sender: 'ai'
       });
-      return;
+      return apiResponse;
     }
 
     addStep(`Found ${workers.length} ${tradeName}${workers.length > 1 ? 's' : ''}. Evaluating...`, 'success');
     await delay(800);
 
-    // Show on map
     setWorkers(workers);
 
-    addStep('Showing them on the map...', 'action');
-    await delay(1000);
+    // Evaluate each worker visually in chat
+    for (let i = 0; i < Math.min(workers.length, 3); i++) {
+      const w = workers[i];
+      const dist = w.distance_km ? `${w.distance_km}km` : '';
+      const trust = w.trust_score ? `Trust: ${w.trust_score}` : '';
+      const info = [dist, trust].filter(Boolean).join(' · ');
+      addStep(`Checking ${w.name || `Worker ${i + 1}`}${info ? ': ' + info : ''}`, i === Math.min(workers.length, 3) - 1 ? 'action' : 'searching');
+      await delay(1000);
+    }
+
+    addStep(`Best match: ${workers[0].name || 'Top worker'}`, 'complete');
+    await delay(800);
+
+    addMessage({
+      type: 'agent_result',
+      text: apiResponse?.message || `Recommended: ${workers[0].name || 'Best match'}. Opening on map...`,
+      data: workers[0],
+      actionType: 'worker_card',
+      sender: 'ai'
+    });
+
+    await delay(1200);
     setChatOpen(false);
 
-    // Animate through workers on map
+    // Animate on map
     for (let i = 0; i < workers.length; i++) {
       const w = workers[i];
       setHighlightedWorkerId(w.id || w.phone || `${w.location_lat}_${w.location_lng}`);
       await delay(1500);
     }
 
-    // Select best
     setHighlightedWorkerId(null);
     setAgentSelectedWorker(workers[0]);
-
-    // Show result in chat (user can reopen to see)
-    addMessage({
-      type: 'agent_result',
-      text: apiResponse?.message || `Recommended: ${workers[0].name || 'Best match found'}. Tap the card to book.`,
-      data: workers[0],
-      actionType: 'worker_card',
-      sender: 'ai'
-    });
+    return apiResponse;
   }
 
-  async function handleLogSale(text, apiResponse) {
+  async function handleLogSale(text, apiPromise) {
     addStep('Processing your sale...', 'thinking');
     await delay(800);
 
     addStep('Parsing sale details...', 'searching');
-    await delay(700);
+    await delay(900);
+
+    // Wait for API
+    const apiResponse = await apiPromise;
 
     if (apiResponse?.type === 'sale_logged' && apiResponse.data) {
       const sale = apiResponse.data.sale || apiResponse.data;
       addStep(`Detected: ${sale.quantity || ''}x ${sale.item_name || 'item'} — ₦${Number(sale.amount || 0).toLocaleString()}`, 'success');
-      await delay(600);
+      await delay(700);
 
       addStep('Logging to your sales record...', 'action');
-      await delay(800);
+      await delay(900);
 
-      addStep('Sale logged!', 'complete');
-      await delay(500);
+      addStep('Sale logged successfully!', 'complete');
+      await delay(600);
 
       addMessage({
         type: 'agent_result',
@@ -141,14 +158,15 @@ export function useAgentChat() {
         logged_at: new Date().toISOString()
       });
 
+      await delay(1000);
       addStep('Taking you to your inventory...', 'complete');
       await delay(1500);
       setChatOpen(false);
       setPendingNavigation('/pulse');
     } else {
-      // No backend response — still show the animation
+      // Backend didn't return sale_logged — still show animation
       addStep('Sale recorded!', 'complete');
-      await delay(500);
+      await delay(600);
 
       addMessage({
         type: 'agent_result',
@@ -156,9 +174,13 @@ export function useAgentChat() {
         sender: 'ai'
       });
     }
+
+    return apiResponse;
   }
 
-  async function handleGenericResponse(apiResponse) {
+  async function handleGenericResponse(apiPromise) {
+    const apiResponse = await apiPromise;
+
     if (apiResponse?.steps && apiResponse.steps.length > 0) {
       for (const step of apiResponse.steps) {
         addStep(step, 'thinking');
@@ -173,43 +195,37 @@ export function useAgentChat() {
       actionType: apiResponse?.type,
       sender: 'ai'
     });
+
+    return apiResponse;
   }
 
   async function send(text) {
     addMessage({ type: 'text', text, sender: 'user' });
 
     addStep('Understanding your request...', 'thinking');
+    await delay(600);
 
     const localIntent = detectLocalIntent(text);
 
-    // Call API in the background
-    let apiResponse = null;
-    try {
-      const user = useAppStore.getState().user;
-      const [userLng, userLat] = useAppStore.getState().mapCenter;
+    // Fire API call (don't await yet — let animations run)
+    const user = useAppStore.getState().user;
+    const [userLng, userLat] = useAppStore.getState().mapCenter;
 
-      apiResponse = await api.sendChat(text, {
-        user_id: user?.phone || user?.id,
-        user_type: user?.user_type || user?.role || 'unknown',
-        user_lat: userLat,
-        user_lng: userLng
-      });
-    } catch {
-      // Backend unreachable — continue with local flow
-    }
+    const apiPromise = api.sendChat(text, {
+      user_id: user?.phone || user?.id,
+      user_type: user?.user_type || user?.role || 'unknown',
+      user_lat: userLat,
+      user_lng: userLng
+    }).catch(() => null);
 
-    // Route to appropriate handler with animated UX
-    const intent = apiResponse?.type || localIntent;
-
-    if (intent === 'worker_card' || intent === 'find_worker') {
-      await handleFindWorker(text, apiResponse);
-    } else if (intent === 'sale_logged' || intent === 'log_sale') {
-      await handleLogSale(text, apiResponse);
+    // Route based on local intent — animations start immediately
+    if (localIntent === 'find_worker') {
+      return await handleFindWorker(text, apiPromise);
+    } else if (localIntent === 'log_sale') {
+      return await handleLogSale(text, apiPromise);
     } else {
-      await handleGenericResponse(apiResponse);
+      return await handleGenericResponse(apiPromise);
     }
-
-    return apiResponse;
   }
 
   return { send };
