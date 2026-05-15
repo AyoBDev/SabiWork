@@ -26,20 +26,21 @@ export function useAgentChat() {
     if (!data) return;
     const workers = [data, ...(data.alternatives || [])].filter(Boolean);
     setWorkers(workers);
-    await delay(600);
+
+    addMessage({
+      type: 'agent_step',
+      text: 'Found workers! Showing them on the map...',
+      stepType: 'success',
+      sender: 'ai'
+    });
+    await delay(1200);
     setChatOpen(false);
 
-    // Animate through workers
+    // Animate through workers on map
     for (let i = 0; i < workers.length; i++) {
       const w = workers[i];
       setHighlightedWorkerId(w.id || w.phone);
-      addMessage({
-        type: 'agent_step',
-        text: `Evaluating ${w.name || `Worker ${i + 1}`}: ${w.distance_km ? w.distance_km + 'km' : ''} ${w.trust_score ? '• Trust: ' + w.trust_score : ''}`,
-        stepType: i === workers.length - 1 ? 'action' : 'searching',
-        sender: 'ai'
-      });
-      await delay(1200);
+      await delay(1500);
     }
 
     // Select best (first one)
@@ -51,7 +52,7 @@ export function useAgentChat() {
     addMessage({ type: 'text', text, sender: 'user' });
 
     // Show typing indicator
-    addMessage({ type: 'agent_step', text: 'Thinking...', stepType: 'thinking', sender: 'ai' });
+    addMessage({ type: 'agent_step', text: 'Understanding your request...', stepType: 'thinking', sender: 'ai' });
 
     try {
       const user = useAppStore.getState().user;
@@ -59,15 +60,27 @@ export function useAgentChat() {
 
       const response = await api.sendChat(text, {
         user_id: user?.phone || user?.id,
-        user_type: user?.user_type || 'unknown',
+        user_type: user?.user_type || user?.role || 'unknown',
         user_lat: userLat,
         user_lng: userLng
       });
 
-      // Animate steps if provided
+      // Animate steps if provided — user sees these in the chat
       if (response.steps && response.steps.length > 0) {
         await animateSteps(response.steps);
       }
+
+      // Show final message FIRST so user sees the result
+      addMessage({
+        type: 'agent_result',
+        text: response.message,
+        data: response.data,
+        actionType: response.type,
+        sender: 'ai'
+      });
+
+      // Then perform actions (close chat, navigate, etc.) after a brief pause
+      await delay(1000);
 
       // Handle worker_card type with map animation
       if (response.type === 'worker_card' && response.data) {
@@ -83,17 +96,16 @@ export function useAgentChat() {
           sabi_score_after: response.data.sabi_score_after,
           logged_at: new Date().toISOString()
         });
+        addMessage({
+          type: 'agent_step',
+          text: 'Sale logged! Taking you to your inventory...',
+          stepType: 'complete',
+          sender: 'ai'
+        });
+        await delay(1500);
+        setChatOpen(false);
         setPendingNavigation('/pulse');
       }
-
-      // Show final message
-      addMessage({
-        type: 'agent_result',
-        text: response.message,
-        data: response.data,
-        actionType: response.type,
-        sender: 'ai'
-      });
 
       return response;
     } catch (err) {
