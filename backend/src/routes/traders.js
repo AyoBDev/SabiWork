@@ -86,9 +86,20 @@ router.post('/log-sale', async (req, res) => {
       return res.status(400).json({ error: 'Missing phone or message' });
     }
 
-    const trader = await knex('traders').where({ phone }).first();
+    let trader = await knex('traders').where({ phone }).first();
     if (!trader) {
-      return res.status(404).json({ error: 'Trader not found' });
+      // Auto-register trader on first sale
+      const [newTrader] = await knex('traders').insert({
+        phone,
+        name: 'Trader',
+        area: 'lagos',
+        business_type: 'retail',
+        sabi_score: 0,
+        total_logged_sales: 0,
+        total_logged_revenue: 0,
+        created_at: new Date()
+      }).returning('*');
+      trader = newTrader;
     }
 
     // Parse sale via NLP

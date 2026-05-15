@@ -202,8 +202,23 @@ async function handleSaleLog(message, userId) {
     }
   }
 
+  if (!trader && userId) {
+    // Auto-register trader on first sale
+    const [newTrader] = await knex('traders').insert({
+      phone: userId,
+      name: 'Trader',
+      area: 'lagos',
+      business_type: 'retail',
+      sabi_score: 0,
+      total_logged_sales: 0,
+      total_logged_revenue: 0,
+      created_at: new Date()
+    }).returning('*');
+    trader = newTrader;
+  }
+
   if (!trader) {
-    return { type: 'text', message: "You're not registered as a trader yet. Send \"register trader\" to get started." };
+    return { type: 'text', message: "I couldn't identify your account. Please try again." };
   }
 
   const sale = await classifySale(message);
