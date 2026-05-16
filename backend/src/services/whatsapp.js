@@ -94,12 +94,12 @@ function formatResponse(response) {
       let msg = `${response.message}\n\n`;
       msg += `*${w.name}*\n`;
       msg += `${w.area || 'Lagos'}\n`;
-      msg += `Trust: ${w.trust_score || 'N/A'}\n`;
+      msg += `Sabi Score: ${w.trust_score || w.sabi_score || 'N/A'}\n`;
       if (w.phone) msg += `${w.phone}\n`;
       if (response.alternatives && response.alternatives.length > 0) {
         msg += `\n_Other options:_\n`;
         response.alternatives.forEach((alt, i) => {
-          msg += `${i + 1}. ${alt.name} (${alt.trust_score || 'N/A'})\n`;
+          msg += `${i + 1}. ${alt.name} (${alt.sabi_score || alt.trust_score || 'N/A'})\n`;
         });
       }
       return msg;
@@ -136,7 +136,7 @@ function formatResponse(response) {
     case 'status': {
       const d = response.data;
       let msg = `*Your Status*\n\n`;
-      if (d.trust_score !== undefined) msg += `Trust Score: ${d.trust_score}\n`;
+      if (d.trust_score !== undefined) msg += `Sabi Score: ${d.trust_score}\n`;
       if (d.sabi_score !== undefined) msg += `Sabi Score: ${d.sabi_score}\n`;
       if (d.total_jobs !== undefined) msg += `Total Jobs: ${d.total_jobs}\n`;
       if (d.total_income !== undefined) msg += `Total Income: N${d.total_income?.toLocaleString() || 0}\n`;
@@ -196,7 +196,7 @@ async function processMessage(phone, text) {
           data: matchResponse.worker_card,
           alternatives: allCandidates.slice(1, 4).map(w => ({
             name: w.name,
-            trust_score: parseFloat(w.trust_score)
+            sabi_score: parseFloat(w.trust_score)
           }))
         };
       }
@@ -276,8 +276,7 @@ async function processMessage(phone, text) {
           return {
             type: 'status',
             data: {
-              trust_score: parseFloat(worker.trust_score),
-              sabi_score: worker.sabi_score,
+              sabi_score: parseFloat(worker.trust_score),
               total_jobs: worker.total_jobs,
               total_income: worker.total_income
             }

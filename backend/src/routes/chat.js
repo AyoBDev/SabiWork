@@ -187,7 +187,7 @@ async function handleBuyerRequest(intent, { user_id, user_lat, user_lng }) {
     alternatives: allCandidates.slice(1, 4).map(w => ({
       id: w.id,
       name: w.name,
-      trust_score: parseFloat(w.trust_score),
+      sabi_score: parseFloat(w.sabi_score || w.trust_score || 0),
       distance_km: w.distance_km ? Math.round(w.distance_km * 10) / 10 : null
     }))
   };
@@ -330,15 +330,15 @@ async function handleStatusCheck(userId, userType) {
     }
     if (worker) {
       const { getTier } = require('../services/trust');
+      const score = parseFloat(worker.sabi_score || worker.trust_score || 0);
       return {
         type: 'status',
-        message: `Your trust score is ${parseFloat(worker.trust_score).toFixed(2)} — ${getTier(parseFloat(worker.trust_score)).label} tier.`,
+        message: `Your Sabi Score is ${(score * 100).toFixed(0)}% — ${getTier(score).label} tier.`,
         data: {
-          trust_score: parseFloat(worker.trust_score),
-          sabi_score: worker.sabi_score,
+          sabi_score: score,
           total_jobs: worker.total_jobs,
           total_income: worker.total_income,
-          tier: getTier(parseFloat(worker.trust_score))
+          tier: getTier(score)
         }
       };
     }
@@ -386,7 +386,8 @@ async function handleReEngage(userId, userType) {
   } else if (userId && (userType === 'worker' || !userType)) {
     const worker = await knex('workers').where({ phone: userId }).orWhere({ id: userId }).first();
     if (worker) {
-      summary = `Welcome back! You've completed ${worker.total_jobs} jobs. Trust score: ${parseFloat(worker.trust_score).toFixed(2)}.`;
+      const score = parseFloat(worker.sabi_score || worker.trust_score || 0);
+      summary = `Welcome back! You've completed ${worker.total_jobs} jobs. Sabi Score: ${(score * 100).toFixed(0)}%.`;
     }
   }
 
@@ -406,7 +407,7 @@ function getHelpMessage(userType) {
   const base = "I can help you with:\n• Find workers nearby\n• Log sales\n• Check your Sabi Score\n• Create investment rounds\n• Check wallet balance";
   const extras = {
     trader: "\n• Get weekly sales reports\n• Track your path to microloans",
-    worker: "\n• Update availability\n• See your trust score\n• Find jobs",
+    worker: "\n• Update availability\n• See your Sabi Score\n• Find jobs",
     seeker: "\n• See in-demand trades\n• Find apprenticeships"
   };
   return base + (extras[userType] || '');

@@ -9,21 +9,21 @@ const KNOWN_TRADES = ['plumber', 'plumbing', 'electrician', 'electrical', 'carpe
 
 const DEMO_WORKERS = {
   plumbing: [
-    { id: 'w1', name: 'Emeka Okafor', primary_trade: 'plumbing', trust_score: 0.89, distance_km: 1.2, avg_rating: 4.8, total_jobs: 43, location_lat: 6.5100, location_lng: 3.3700 },
-    { id: 'w2', name: 'Chidi Nwosu', primary_trade: 'plumbing', trust_score: 0.76, distance_km: 2.4, avg_rating: 4.5, total_jobs: 28, location_lat: 6.5200, location_lng: 3.3800 },
-    { id: 'w3', name: 'Tunde Bakare', primary_trade: 'plumbing', trust_score: 0.71, distance_km: 3.1, avg_rating: 4.3, total_jobs: 19, location_lat: 6.5300, location_lng: 3.3900 },
+    { id: 'w1', name: 'Emeka Okafor', primary_trade: 'plumbing', sabi_score: 0.89, distance_km: 1.2, avg_rating: 4.8, total_jobs: 43, location_lat: 6.5100, location_lng: 3.3700 },
+    { id: 'w2', name: 'Chidi Nwosu', primary_trade: 'plumbing', sabi_score: 0.76, distance_km: 2.4, avg_rating: 4.5, total_jobs: 28, location_lat: 6.5200, location_lng: 3.3800 },
+    { id: 'w3', name: 'Tunde Bakare', primary_trade: 'plumbing', sabi_score: 0.71, distance_km: 3.1, avg_rating: 4.3, total_jobs: 19, location_lat: 6.5300, location_lng: 3.3900 },
   ],
   electrical: [
-    { id: 'w4', name: 'Femi Adeyemi', primary_trade: 'electrical', trust_score: 0.92, distance_km: 0.8, avg_rating: 4.9, total_jobs: 67, location_lat: 6.5150, location_lng: 3.3750 },
-    { id: 'w5', name: 'Bayo Ogundimu', primary_trade: 'electrical', trust_score: 0.81, distance_km: 1.9, avg_rating: 4.6, total_jobs: 31, location_lat: 6.5250, location_lng: 3.3850 },
+    { id: 'w4', name: 'Femi Adeyemi', primary_trade: 'electrical', sabi_score: 0.92, distance_km: 0.8, avg_rating: 4.9, total_jobs: 67, location_lat: 6.5150, location_lng: 3.3750 },
+    { id: 'w5', name: 'Bayo Ogundimu', primary_trade: 'electrical', sabi_score: 0.81, distance_km: 1.9, avg_rating: 4.6, total_jobs: 31, location_lat: 6.5250, location_lng: 3.3850 },
   ],
   carpentry: [
-    { id: 'w6', name: 'Ade Olamide', primary_trade: 'carpentry', trust_score: 0.85, distance_km: 1.5, avg_rating: 4.7, total_jobs: 52, location_lat: 6.5180, location_lng: 3.3720 },
-    { id: 'w7', name: 'Kunle Fasasi', primary_trade: 'carpentry', trust_score: 0.73, distance_km: 2.8, avg_rating: 4.4, total_jobs: 22, location_lat: 6.5280, location_lng: 3.3880 },
+    { id: 'w6', name: 'Ade Olamide', primary_trade: 'carpentry', sabi_score: 0.85, distance_km: 1.5, avg_rating: 4.7, total_jobs: 52, location_lat: 6.5180, location_lng: 3.3720 },
+    { id: 'w7', name: 'Kunle Fasasi', primary_trade: 'carpentry', sabi_score: 0.73, distance_km: 2.8, avg_rating: 4.4, total_jobs: 22, location_lat: 6.5280, location_lng: 3.3880 },
   ],
   cleaning: [
-    { id: 'w8', name: 'Grace Ojo', primary_trade: 'cleaning', trust_score: 0.88, distance_km: 1.0, avg_rating: 4.8, total_jobs: 56, location_lat: 6.5120, location_lng: 3.3680 },
-    { id: 'w9', name: 'Amina Hassan', primary_trade: 'cleaning', trust_score: 0.79, distance_km: 2.1, avg_rating: 4.5, total_jobs: 34, location_lat: 6.5220, location_lng: 3.3820 },
+    { id: 'w8', name: 'Grace Ojo', primary_trade: 'cleaning', sabi_score: 0.88, distance_km: 1.0, avg_rating: 4.8, total_jobs: 56, location_lat: 6.5120, location_lng: 3.3680 },
+    { id: 'w9', name: 'Amina Hassan', primary_trade: 'cleaning', sabi_score: 0.79, distance_km: 2.1, avg_rating: 4.5, total_jobs: 34, location_lat: 6.5220, location_lng: 3.3820 },
   ],
 };
 

@@ -7,7 +7,7 @@ const BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
   : '/api';
 
-const TRUST_TIER_CONFIG = {
+const SABI_TIER_CONFIG = {
   Elite: { color: '#F9A825', bgColor: '#FFF9E6', icon: Award },
   Verified: { color: '#1565C0', bgColor: '#E3F2FD', icon: Shield },
   Trusted: { color: '#1B7A3D', bgColor: '#E8F5E9', icon: Shield },
@@ -36,10 +36,10 @@ async function fetchPublicProfile(userId) {
   throw new Error('Profile not found');
 }
 
-function getTrustTier(trustScore) {
-  if (trustScore >= 0.8) return 'Elite';
-  if (trustScore >= 0.6) return 'Verified';
-  if (trustScore >= 0.3) return 'Trusted';
+function getSabiTier(score) {
+  if (score >= 0.8) return 'Elite';
+  if (score >= 0.6) return 'Verified';
+  if (score >= 0.3) return 'Trusted';
   return 'Emerging';
 }
 
@@ -96,9 +96,9 @@ export default function PublicProfilePage() {
 
   const name = profile.name || 'User';
   const initial = name.charAt(0).toUpperCase();
-  const trustScore = profile.trust_score || 0;
-  const trustTier = getTrustTier(trustScore);
-  const tierConfig = TRUST_TIER_CONFIG[trustTier];
+  const trustScore = profile.sabi_score || 0;
+  const trustTier = getSabiTier(trustScore);
+  const tierConfig = SABI_TIER_CONFIG[trustTier];
   const TierIcon = tierConfig.icon;
   const trade = profile.primary_trade || profile.business_type || 'Member';
   const areas = profile.service_areas || [];

@@ -3,28 +3,28 @@ import { backendAPI } from '../services/api.js';
 
 const DEMO_WORKERS = {
   plumbing: [
-    { name: 'Emeka Okafor', primary_trade: 'plumbing', trust_score: 0.89, distance_km: 1.2, total_jobs: 43 },
-    { name: 'Chidi Nwosu', primary_trade: 'plumbing', trust_score: 0.76, distance_km: 2.4, total_jobs: 28 },
+    { name: 'Emeka Okafor', primary_trade: 'plumbing', sabi_score: 0.89, distance_km: 1.2, total_jobs: 43 },
+    { name: 'Chidi Nwosu', primary_trade: 'plumbing', sabi_score: 0.76, distance_km: 2.4, total_jobs: 28 },
   ],
   electrical: [
-    { name: 'Femi Adeyemi', primary_trade: 'electrical', trust_score: 0.92, distance_km: 0.8, total_jobs: 67 },
-    { name: 'Bayo Ogundimu', primary_trade: 'electrical', trust_score: 0.81, distance_km: 1.9, total_jobs: 31 },
+    { name: 'Femi Adeyemi', primary_trade: 'electrical', sabi_score: 0.92, distance_km: 0.8, total_jobs: 67 },
+    { name: 'Bayo Ogundimu', primary_trade: 'electrical', sabi_score: 0.81, distance_km: 1.9, total_jobs: 31 },
   ],
   carpentry: [
-    { name: 'Ade Olamide', primary_trade: 'carpentry', trust_score: 0.85, distance_km: 1.5, total_jobs: 52 },
-    { name: 'Kunle Fasasi', primary_trade: 'carpentry', trust_score: 0.73, distance_km: 2.8, total_jobs: 22 },
+    { name: 'Ade Olamide', primary_trade: 'carpentry', sabi_score: 0.85, distance_km: 1.5, total_jobs: 52 },
+    { name: 'Kunle Fasasi', primary_trade: 'carpentry', sabi_score: 0.73, distance_km: 2.8, total_jobs: 22 },
   ],
   cleaning: [
-    { name: 'Grace Ojo', primary_trade: 'cleaning', trust_score: 0.88, distance_km: 1.0, total_jobs: 56 },
-    { name: 'Amina Hassan', primary_trade: 'cleaning', trust_score: 0.79, distance_km: 2.1, total_jobs: 34 },
+    { name: 'Grace Ojo', primary_trade: 'cleaning', sabi_score: 0.88, distance_km: 1.0, total_jobs: 56 },
+    { name: 'Amina Hassan', primary_trade: 'cleaning', sabi_score: 0.79, distance_km: 2.1, total_jobs: 34 },
   ],
   painting: [
-    { name: 'Segun Afolabi', primary_trade: 'painting', trust_score: 0.84, distance_km: 1.3, total_jobs: 38 },
-    { name: 'Ibrahim Yusuf', primary_trade: 'painting', trust_score: 0.72, distance_km: 2.6, total_jobs: 21 },
+    { name: 'Segun Afolabi', primary_trade: 'painting', sabi_score: 0.84, distance_km: 1.3, total_jobs: 38 },
+    { name: 'Ibrahim Yusuf', primary_trade: 'painting', sabi_score: 0.72, distance_km: 2.6, total_jobs: 21 },
   ],
   tailoring: [
-    { name: 'Ngozi Eze', primary_trade: 'tailoring', trust_score: 0.91, distance_km: 0.9, total_jobs: 72 },
-    { name: 'Fatima Bello', primary_trade: 'tailoring', trust_score: 0.78, distance_km: 1.7, total_jobs: 29 },
+    { name: 'Ngozi Eze', primary_trade: 'tailoring', sabi_score: 0.91, distance_km: 0.9, total_jobs: 72 },
+    { name: 'Fatima Bello', primary_trade: 'tailoring', sabi_score: 0.78, distance_km: 1.7, total_jobs: 29 },
   ],
 };
 
@@ -158,23 +158,25 @@ function fallbackResponse(text, phone, state, conversations) {
     return formatWorkerMatch(workers[0], 1, workers.length);
   }
 
-  return `👋 Welcome to SabiWork! I can help you find skilled workers nearby.
+  return `👋 How can I help you today?
 
-Try telling me what you need:
-• "I need a plumber in Surulere"
-• "Find me an electrician"
-• "I need someone to clean my office"
+I can:
+• Find workers — "I need a plumber"
+• Log sales — "sold 5 bags rice 75000"
+• Check your Sabi Score — type *SCORE*
+• Show availability — type *READY* or *BUSY*
 
-Or type *HELP* for all commands.`;
+Just tell me what you need!`;
 }
 
 function formatWorkerMatch(worker, idx, total) {
-  const trust = worker.trust_score ? `${(parseFloat(worker.trust_score) * 100).toFixed(0)}%` : '—';
+  const score = worker.sabi_score || worker.trust_score;
+  const sabiDisplay = score ? `${(parseFloat(score) * 100).toFixed(0)}%` : '—';
   const dist = worker.distance_km ? `${worker.distance_km}km away` : 'Nearby';
   return `👷 *Match ${idx}/${total}: ${worker.name}*
 
 🔧 Trade: ${worker.primary_trade || 'Worker'}
-🛡️ Trust: ${trust}
+⭐ Sabi Score: ${sabiDisplay}
 📍 ${dist}
 💼 ${worker.total_jobs || 0} jobs completed
 

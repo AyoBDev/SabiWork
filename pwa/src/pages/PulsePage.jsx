@@ -16,7 +16,7 @@ export default function PulsePage() {
   const demoUser = user || {
     role: 'worker',
     name: 'Emeka Okafor',
-    trust_score: 0.76,
+    sabi_score: 0.76,
     sabi_score: 62,
     total_jobs: 34,
     total_income: 510000,

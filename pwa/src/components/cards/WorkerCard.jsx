@@ -1,14 +1,14 @@
 // pwa/src/components/cards/WorkerCard.jsx
 import { useChat } from '../../hooks/useChat';
 
-const TRUST_COLORS = {
+const SABI_COLORS = {
   emerging: '#4CAF50',
   trusted: '#1B7A3D',
   verified: '#1976D2',
   elite: '#F9A825'
 };
 
-function getTrustTier(score) {
+function getSabiTier(score) {
   if (score >= 0.8) return 'elite';
   if (score >= 0.6) return 'verified';
   if (score >= 0.3) return 'trusted';
@@ -17,8 +17,8 @@ function getTrustTier(score) {
 
 export default function WorkerCard({ worker }) {
   const { bookWorker } = useChat();
-  const tier = getTrustTier(worker.trust_score);
-  const color = TRUST_COLORS[tier];
+  const tier = getSabiTier(worker.sabi_score);
+  const color = SABI_COLORS[tier];
 
   return (
     <div className="bg-white rounded-xl border border-warm-border p-3 shadow-sm">
@@ -47,7 +47,7 @@ export default function WorkerCard({ worker }) {
           {/* Stats */}
           <div className="flex items-center gap-3 mt-1.5 text-[11px] text-warm-muted">
             <span>{worker.total_jobs} jobs</span>
-            <span>⭐ {(worker.trust_score * 5).toFixed(1)}</span>
+            <span>⭐ {(worker.sabi_score * 5).toFixed(1)}</span>
             {worker.distance && <span>📍 {worker.distance}</span>}
           </div>
         </div>

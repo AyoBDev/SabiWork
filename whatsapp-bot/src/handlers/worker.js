@@ -8,8 +8,7 @@ function getDemoWorker(phone) {
   if (!demoWorkerState.has(phone)) {
     demoWorkerState.set(phone, {
       name: 'Worker',
-      trust_score: 0.65,
-      sabi_score: 35,
+      sabi_score: 65,
       total_jobs: 12,
       total_income: 180000,
       is_available: false
@@ -33,8 +32,7 @@ export async function handleWorkerCommand(phone, command, state, conversations) 
 
 You'll receive job alerts for your area. Stay close to your phone! 📱
 
-🛡️ Trust Score: ${(parseFloat(worker.trust_score || 0) * 100).toFixed(0)}%
-📊 SabiScore: ${worker.sabi_score || 0}/100`;
+⭐ Sabi Score: ${worker.sabi_score || 0}/100`;
       } catch (err) {
         // Demo fallback
         const demo = getDemoWorker(phone);
@@ -43,8 +41,7 @@ You'll receive job alerts for your area. Stay close to your phone! 📱
 
 You'll receive job alerts for your area. Stay close to your phone! 📱
 
-🛡️ Trust Score: ${(demo.trust_score * 100).toFixed(0)}%
-📊 SabiScore: ${demo.sabi_score}/100`;
+⭐ Sabi Score: ${demo.sabi_score}/100`;
       }
 
     case 'BUSY':
@@ -109,24 +106,19 @@ Rest well! 💤`;
 function formatScores(worker) {
   if (!worker) return 'No score data available.';
 
-  const trustScore = parseFloat(worker.trust_score || 0);
   const sabiScore = worker.sabi_score || 0;
-  const trustBar = '█'.repeat(Math.round(trustScore * 10)) + '░'.repeat(10 - Math.round(trustScore * 10));
   const sabiBar = '█'.repeat(Math.round(sabiScore / 10)) + '░'.repeat(10 - Math.round(sabiScore / 10));
 
   let tier = '🌱 Emerging';
-  if (trustScore >= 0.8) tier = '🥇 Elite';
-  else if (trustScore >= 0.6) tier = '✅ Verified';
-  else if (trustScore >= 0.3) tier = '⭐ Trusted';
+  if (sabiScore >= 80) tier = '🥇 Elite';
+  else if (sabiScore >= 60) tier = '✅ Verified';
+  else if (sabiScore >= 30) tier = '⭐ Trusted';
 
-  return `📊 *Your SabiWork Scores*
+  return `📊 *Your Sabi Score*
 
-🛡️ *Trust Score:* ${(trustScore * 100).toFixed(0)}%
-[${trustBar}]
-Tier: ${tier}
-
-💳 *SabiScore:* ${sabiScore}/100
+⭐ *Score:* ${sabiScore}/100
 [${sabiBar}]
+Tier: ${tier}
 ${sabiScore >= 50 ? '✅ Microloan eligible!' : `📍 ${50 - sabiScore} points to loan`}
 
 📈 *Stats:*

@@ -31,9 +31,9 @@ export default function PayoutCard({ payout }) {
 
       {payout.trust_update && (
         <div className="mt-2 flex items-center gap-1.5 text-[11px]">
-          <span className="text-sabi-green">↑ Trust: {payout.trust_update.new_score.toFixed(2)}</span>
+          <span className="text-sabi-green">↑ Sabi Score: {payout.trust_update.new_score.toFixed(2)}</span>
           <span className="text-warm-muted">•</span>
-          <span className="text-cash-gold">SabiScore: {payout.trust_update.sabi_score}</span>
+          <span className="text-cash-gold">{payout.trust_update.sabi_score}/100</span>
         </div>
       )}
     </div>

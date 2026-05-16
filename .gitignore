@@ -43,3 +43,4 @@ docs/
 *.seed
 *.pid.lock
 worktrees/
+.gstack/

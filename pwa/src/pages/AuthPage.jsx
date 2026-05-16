@@ -169,7 +169,7 @@ export default function AuthPage() {
       phone: userData.phone,
       primary_trade: userData.primary_trade,
       service_areas: userData.service_areas,
-      trust_score: userData.trust_score,
+      sabi_score: userData.sabi_score,
       sabi_score: userData.sabi_score,
       account_number: userData.account_number,
       bank_code: userData.bank_code,
@@ -216,7 +216,7 @@ export default function AuthPage() {
         bank_code: onboardForm.bank_code || null,
         role,
         area: coords ? 'lagos' : 'surulere',
-        trust_score: 0,
+        sabi_score: 0,
         sabi_score: Math.floor(Math.random() * 101)
       };
       localStorage.setItem('sabiwork_user', JSON.stringify(session));
@@ -267,7 +267,7 @@ export default function AuthPage() {
         phone: onboardForm.phone,
         primary_trade: onboardForm.primary_trade,
         service_areas: onboardForm.service_areas,
-        trust_score: result.trust_score || 0,
+        sabi_score: result.sabi_score || 0,
         sabi_score: result.sabi_score || Math.floor(Math.random() * 101),
         account_number: onboardForm.account_number,
         bank_code: onboardForm.bank_code,

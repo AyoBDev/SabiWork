@@ -26,7 +26,7 @@ export default function RatingCard({ job }) {
   return (
     <div className="bg-white rounded-xl border border-warm-border p-3 shadow-sm">
       <p className="text-sm font-medium text-warm-text mb-1">How was {job.worker_name}?</p>
-      <p className="text-xs text-warm-muted mb-3">Your rating updates their trust score</p>
+      <p className="text-xs text-warm-muted mb-3">Your rating updates their Sabi Score</p>
 
       <div className="flex justify-center gap-2 mb-3">
         {[1, 2, 3, 4, 5].map((star) => (

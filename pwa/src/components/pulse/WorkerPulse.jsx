@@ -26,10 +26,10 @@ export default function WorkerPulse({ user }) {
         </div>
       </div>
 
-      {/* Trust Ring */}
+      {/* Sabi Score Ring */}
       <div className="bg-white rounded-xl border border-warm-border p-4 flex flex-col items-center">
-        <h3 className="text-sm font-semibold text-warm-text mb-3">Trust Score</h3>
-        <TrustRing score={user.trust_score} />
+        <h3 className="text-sm font-semibold text-warm-text mb-3">Sabi Score</h3>
+        <TrustRing score={user.sabi_score} />
         <p className="text-[10px] text-warm-muted mt-2 text-center">
           Based on {user.total_jobs} completed jobs, payment speed, and ratings
         </p>
@@ -46,7 +46,7 @@ export default function WorkerPulse({ user }) {
             <p className="text-xs font-medium text-sabi-green mb-0.5">Insight</p>
             <p className="text-xs text-warm-text leading-relaxed">
               Your reliability is top 20% in {user.service_areas?.[0] || 'your area'}.
-              Completing 3 more jobs this week could move you to the next trust tier.
+              Completing 3 more jobs this week could boost your Sabi Score.
             </p>
           </div>
         </div>
@@ -57,8 +57,8 @@ export default function WorkerPulse({ user }) {
         <h3 className="text-sm font-semibold text-warm-text mb-2">Unlocked</h3>
         <div className="space-y-2">
           <UnlockItem unlocked={true} label="Basic Matching" description="Available to all workers" />
-          <UnlockItem unlocked={user.trust_score >= 0.3} label="Priority Matching" description="Trust score ≥ 0.30" />
-          <UnlockItem unlocked={user.trust_score >= 0.6} label="Accept Apprentices" description="Trust score ≥ 0.60" />
+          <UnlockItem unlocked={user.sabi_score >= 0.3} label="Priority Matching" description="Sabi Score ≥ 0.30" />
+          <UnlockItem unlocked={user.sabi_score >= 0.6} label="Accept Apprentices" description="Sabi Score ≥ 0.60" />
           <UnlockItem unlocked={user.sabi_score >= 30} label="Savings Account" description="SabiScore ≥ 30" />
           <UnlockItem unlocked={user.sabi_score >= 50} label="Microloan" description="SabiScore ≥ 50" />
           <UnlockItem unlocked={user.sabi_score >= 70} label="Full Financial Suite" description="SabiScore ≥ 70" />

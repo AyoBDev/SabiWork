@@ -281,7 +281,7 @@ async function rankWorkers(intent, candidates) {
     index: i,
     name: w.name,
     trade: w.primary_trade,
-    trust_score: parseFloat(w.trust_score),
+    sabi_score: parseFloat(w.trust_score),
     tier: getTier(parseFloat(w.trust_score)).label,
     total_jobs: w.total_jobs,
     distance_km: w.distance_km ? Math.round(w.distance_km * 10) / 10 : 'unknown'
@@ -289,8 +289,8 @@ async function rankWorkers(intent, candidates) {
 
   const systemPrompt = `You are a matching algorithm for SabiWork, a Nigerian service marketplace.
 Rank these workers for the buyer's request. Consider:
-1. Distance (closer is better, but not if trust is very low)
-2. Trust score (higher means more reliable)
+1. Distance (closer is better, but not if sabi_score is very low)
+2. Sabi Score (higher means more reliable)
 3. Experience (total_jobs indicates experience)
 4. Speciality match to the specific problem described
 
@@ -367,9 +367,9 @@ async function generateMatchResponse(intent, worker, reasoning) {
       name: worker.name,
       trade: worker.primary_trade,
       rating: Math.round((parseFloat(worker.trust_score) * 5) * 10) / 10,
-      trust_tier: tier.label,
-      trust_emoji: tier.emoji,
-      trust_score: parseFloat(worker.trust_score),
+      sabi_tier: tier.label,
+      sabi_emoji: tier.emoji,
+      sabi_score: parseFloat(worker.trust_score),
       distance_km: worker.distance_km ? Math.round(worker.distance_km * 10) / 10 : null,
       eta_min: etaMin,
       price_range: priceRange,
