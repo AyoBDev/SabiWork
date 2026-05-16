@@ -52,7 +52,7 @@ SabiWork/
 | Dashboard | Next.js 15, Tailwind 4, WebSocket |
 | WhatsApp | Baileys 6.7 (headless client) |
 | Payments | Squad API (sandbox) |
-| Deploy | Docker Compose |
+| Deploy | Railway (production), Docker Compose (local) |
 
 ---
 
@@ -68,6 +68,17 @@ SabiWork/
 | **Webhook Processing** | Real-time payment events trigger trust score updates and notifications |
 
 **End-to-end flow:** Worker onboards (virtual account created) -> Buyer books and pays (payment initiation) -> Webhook confirms (verification) -> Job completed -> Payout sent (bank transfer) -> SabiScore updated.
+
+---
+
+## Live Demo
+
+| Service | URL |
+|---------|-----|
+| **Try SabiWork** | [dashboard-production-35ce.up.railway.app/try](https://dashboard-production-35ce.up.railway.app/try) |
+| **PWA** | [pwa-production-af30.up.railway.app](https://pwa-production-af30.up.railway.app/) |
+| **Dashboard** | [dashboard-production-35ce.up.railway.app/demo](https://dashboard-production-35ce.up.railway.app/demo) |
+| **WhatsApp Bot** | [wa.me/2347070979606](https://wa.me/2347070979606?text=Join%20SabiWork%20Demo) |
 
 ---
 
@@ -210,7 +221,7 @@ The seed script creates test users automatically. Check the backend logs on firs
 
 ## User Flows
 
-All users can access SabiWork through the **PWA** or **WhatsApp**. A **USSD gateway** serves users on feature phones with no internet *(not yet implemented)*. A dedicated **mobile app** (React Native) is planned for future release.
+All users can access SabiWork through the **PWA** or **WhatsApp**.
 
 | # | User | Flow |
 |---|------|------|
@@ -227,8 +238,6 @@ All users can access SabiWork through the **PWA** or **WhatsApp**. A **USSD gate
 |---------|-------------|
 | PWA | Buyers, Workers, Investors, Seekers |
 | WhatsApp | Traders, Workers, Seekers, Investors |
-| USSD *(not yet implemented)* | All users on feature phones (no data required) |
-| Mobile App *(roadmap)* | All users (React Native, planned) |
 
 ---
 
