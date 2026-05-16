@@ -1,5 +1,4 @@
 import useAppStore from '../stores/appStore';
-import api from '../services/api';
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -90,52 +89,28 @@ export function useAgentChat() {
     addOverlayStep({ text, stepType });
   }
 
-  async function handleFindWorker(text, apiPromise) {
+  async function handleFindWorker(text) {
     const trade = detectTrade(text) || 'worker';
     const tradeName = trade.replace(/ing$/, '').replace(/al$/, '') + 'er';
 
-    // Close chat, navigate to map immediately so user sees the screen
     setChatOpen(false);
     clearOverlay();
     setPendingNavigation('/');
     await delay(300);
 
     overlayStep(`Looking for ${tradeName}s nearby...`, 'searching');
-    await delay(1000);
+    await delay(1200);
+
+    // Use demo workers immediately — no API wait
+    const workers = getDemoWorkers(trade);
 
     overlayStep(`Scanning available ${tradeName}s in your area...`, 'searching');
-
-    // Try API first, fall back to demo data
-    const apiResponse = await apiPromise;
-
-    let workers = [];
-    if (apiResponse?.type === 'worker_card' && apiResponse.data) {
-      workers = [apiResponse.data, ...(apiResponse.data.alternatives || [])].filter(Boolean);
-    }
-
-    if (workers.length === 0) {
-      try {
-        const data = await api.getWorkers({ available: true });
-        const all = data.workers || data || [];
-        workers = all.filter(w => {
-          const wt = w.primary_trade?.toLowerCase() || '';
-          return wt.includes(trade) || trade.includes(wt);
-        }).slice(0, 5);
-        if (workers.length === 0) workers = all.slice(0, 4);
-      } catch {
-        workers = getDemoWorkers(trade);
-      }
-    }
-
-    if (workers.length === 0) {
-      workers = getDemoWorkers(trade);
-    }
+    await delay(1000);
 
     overlayStep(`Found ${workers.length} ${tradeName}${workers.length > 1 ? 's' : ''}`, 'success');
     setWorkers(workers);
     await delay(800);
 
-    // Highlight each worker on the visible map
     for (let i = 0; i < Math.min(workers.length, 3); i++) {
       const w = workers[i];
       const dist = w.distance_km ? `${w.distance_km}km away` : '';
@@ -146,34 +121,26 @@ export function useAgentChat() {
       await delay(1500);
     }
 
-    // Best match
     setHighlightedWorkerId(null);
     overlayStep(`Best match: ${workers[0].name}`, 'complete');
     await delay(1000);
 
-    // Open worker sheet on the visible map
     setHighlightedWorkerId(workers[0].id || workers[0].phone || `${workers[0].location_lat}_${workers[0].location_lng}`);
     await delay(600);
     setHighlightedWorkerId(null);
     clearOverlay();
     setAgentSelectedWorker(workers[0]);
 
-    const resultText = apiResponse?.message ||
-      `I found ${workers[0].name} — solid ${tradeName} near you. ${workers[0].distance_km}km away, ${workers[0].total_jobs} jobs done, people trust am well. Want me book am?`;
-
     addMessage({
       type: 'agent_result',
-      text: resultText,
+      text: `I found ${workers[0].name} — solid ${tradeName} near you. ${workers[0].distance_km}km away, ${workers[0].total_jobs} jobs done, people trust am well. Want me book am?`,
       data: workers[0],
       actionType: 'worker_card',
       sender: 'ai'
     });
-
-    return apiResponse;
   }
 
-  async function handleLogSale(text, apiPromise) {
-    // Close chat, navigate to Pulse immediately so user sees the screen
+  async function handleLogSale(text) {
     setChatOpen(false);
     clearOverlay();
     setPendingNavigation('/pulse');
@@ -182,33 +149,20 @@ export function useAgentChat() {
     overlayStep('Processing your sale...', 'thinking');
     await delay(600);
 
-    // Try API
-    const apiResponse = await apiPromise;
+    const sale = parseSaleFromText(text);
+    const user = useAppStore.getState().user;
+    const todayTotal = (sale.amount || 0) + Math.floor(Math.random() * 50000) + 20000;
+    const todayCount = Math.floor(Math.random() * 4) + 1;
+    const sabiScore = (user?.sabi_score || 30) + 2;
 
-    let sale;
-    let resultMessage;
-    let saleData;
-
-    if (apiResponse?.type === 'sale_logged' && apiResponse.data) {
-      sale = apiResponse.data.sale || apiResponse.data;
-      resultMessage = apiResponse.message;
-      saleData = apiResponse.data;
-    } else {
-      sale = parseSaleFromText(text);
-      const user = useAppStore.getState().user;
-      const todayTotal = (sale.amount || 0) + Math.floor(Math.random() * 50000) + 20000;
-      const todayCount = Math.floor(Math.random() * 4) + 1;
-      const sabiScore = (user?.sabi_score || 30) + 2;
-
-      saleData = {
-        sale,
-        today_total: todayTotal,
-        today_count: todayCount,
-        sabi_score_after: sabiScore,
-        weeks_to_loan: sabiScore >= 50 ? 0 : Math.ceil((50 - sabiScore) / 2)
-      };
-      resultMessage = `Nice one! ${sale.quantity}x ${sale.item_name} logged — ₦${sale.amount.toLocaleString()}. You don sell ₦${todayTotal.toLocaleString()} today. Sabi Score: ${sabiScore}. Keep going!`;
-    }
+    const saleData = {
+      sale,
+      today_total: todayTotal,
+      today_count: todayCount,
+      sabi_score_after: sabiScore,
+      weeks_to_loan: sabiScore >= 50 ? 0 : Math.ceil((50 - sabiScore) / 2)
+    };
+    const resultMessage = `Nice one! ${sale.quantity}x ${sale.item_name} logged — ₦${sale.amount.toLocaleString()}. You don sell ₦${todayTotal.toLocaleString()} today. Sabi Score: ${sabiScore}. Keep going!`;
 
     // Open the sale form on the visible Pulse page
     overlayStep('Opening sale form...', 'action');
@@ -257,29 +211,19 @@ export function useAgentChat() {
       actionType: 'sale_logged',
       sender: 'ai'
     });
-
-    return apiResponse;
   }
 
-  async function handleGenericResponse(apiPromise) {
-    const apiResponse = await apiPromise;
-
-    if (apiResponse?.steps && apiResponse.steps.length > 0) {
-      for (const step of apiResponse.steps) {
-        addMessage({ type: 'agent_step', text: step, stepType: 'thinking', sender: 'ai' });
-        await delay(800 + Math.random() * 400);
-      }
-    }
+  async function handleGenericResponse(text) {
+    addMessage({ type: 'agent_step', text: 'Thinking...', stepType: 'thinking', sender: 'ai' });
+    await delay(800);
 
     addMessage({
       type: 'agent_result',
-      text: apiResponse?.message || "I can help you with:\n• Find workers — \"find me a plumber\"\n• Log sales — \"sold 3 bags rice 75000\"\n• Check score — \"my sabi score\"\n\nTry one of these!",
-      data: apiResponse?.data,
-      actionType: apiResponse?.type,
+      text: "I can help you with:\n• Find workers — \"find me a plumber\"\n• Log sales — \"sold 3 bags rice 75000\"\n• Check score — \"my sabi score\"\n\nTry one of these!",
+      data: null,
+      actionType: 'text',
       sender: 'ai'
     });
-
-    return apiResponse;
   }
 
   async function send(text) {
@@ -287,23 +231,12 @@ export function useAgentChat() {
 
     const localIntent = detectLocalIntent(text);
 
-    // Fire API call in background
-    const user = useAppStore.getState().user;
-    const [userLng, userLat] = useAppStore.getState().mapCenter;
-
-    const apiPromise = api.sendChat(text, {
-      user_id: user?.phone || user?.id,
-      user_type: user?.user_type || user?.role || 'unknown',
-      user_lat: userLat,
-      user_lng: userLng
-    }).catch(() => null);
-
     if (localIntent === 'find_worker') {
-      return await handleFindWorker(text, apiPromise);
+      return await handleFindWorker(text);
     } else if (localIntent === 'log_sale') {
-      return await handleLogSale(text, apiPromise);
+      return await handleLogSale(text);
     } else {
-      return await handleGenericResponse(apiPromise);
+      return await handleGenericResponse(text);
     }
   }
 
