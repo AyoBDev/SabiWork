@@ -23,6 +23,13 @@ export async function handleMessage(phone, text, pushName = '') {
   const state = conversations.get(phone);
   const upperText = text.toUpperCase().trim();
 
+  // PRIORITY: Any trade keyword immediately goes to buyer handler (demo mode)
+  const TRADE_WORDS = ['plumb', 'electric', 'carpenter', 'carpentry', 'clean', 'tailor', 'paint', 'weld', 'til', 'hair'];
+  if (TRADE_WORDS.some(t => text.toLowerCase().includes(t)) && !upperText.startsWith('BOOK') && upperText !== 'NEXT') {
+    conversations.delete(phone);
+    return handleBuyer(phone, text, null, conversations);
+  }
+
   // 0. Handle location capture response from landing page (LOC:lat,lng,accuracy)
   if (upperText.startsWith('LOC:') && state && state.flow === 'onboard') {
     const parts = text.substring(4).split(',');

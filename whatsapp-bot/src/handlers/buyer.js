@@ -54,7 +54,14 @@ function getDemoWorkers(trade) {
 
 export async function handleBuyer(phone, text, state, conversations) {
   const upperText = text.toUpperCase().trim();
-  console.log(`[Buyer] phone=${phone} text="${text}" trade=${detectTrade(text)}`);
+
+  // DEMO HARDCODE: Always return a worker if any trade keyword is in the message
+  const trade = detectTrade(text);
+  if (trade && !upperText.startsWith('BOOK') && upperText !== 'NEXT') {
+    const workers = getDemoWorkers(trade);
+    conversations.set(phone, { buyerContext: { workers, currentIdx: 0 } });
+    return formatWorkerMatch(workers[0], 1, workers.length);
+  }
 
   // Handle BOOK command
   if (upperText.startsWith('BOOK') || upperText === 'NEXT') {
