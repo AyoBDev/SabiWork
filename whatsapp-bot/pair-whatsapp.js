@@ -7,7 +7,7 @@
 //
 // Once paired, the session is saved to DB and the Railway bot can connect.
 
-import makeWASocket, { fetchLatestBaileysVersion, DisconnectReason, Browsers, BufferJSON, initAuthCreds, proto } from '@whiskeysockets/baileys';
+import makeWASocket, { fetchLatestBaileysVersion, DisconnectReason, initAuthCreds } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import pg from 'pg';
 
@@ -35,20 +35,32 @@ async function ensureTable() {
   `);
 }
 
+// MUST match the bot's authState.js serialization exactly
+async function writeData(key, data) {
+  const serialized = JSON.stringify(data, (k, v) => {
+    if (v instanceof Uint8Array || Buffer.isBuffer(v)) {
+      return { type: 'Buffer', data: Array.from(v) };
+    }
+    return v;
+  });
+  await pool.query(
+    `INSERT INTO whatsapp_sessions (key, data, updated_at) VALUES ($1, $2, NOW())
+     ON CONFLICT (key) DO UPDATE SET data = $2, updated_at = NOW()`,
+    [key, serialized]
+  );
+}
+
 async function readData(key) {
   const result = await pool.query('SELECT data FROM whatsapp_sessions WHERE key = $1', [key]);
   if (result.rows.length === 0) return null;
   const raw = result.rows[0].data;
-  return JSON.parse(JSON.stringify(raw), BufferJSON.reviver);
-}
-
-async function writeData(key, value) {
-  const jsonStr = JSON.stringify(value, BufferJSON.replacer);
-  await pool.query(
-    `INSERT INTO whatsapp_sessions (key, data, updated_at) VALUES ($1, $2::jsonb, NOW())
-     ON CONFLICT (key) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
-    [key, jsonStr]
-  );
+  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  return JSON.parse(JSON.stringify(parsed), (k, v) => {
+    if (v && typeof v === 'object' && v.type === 'Buffer' && Array.isArray(v.data)) {
+      return Buffer.from(v.data);
+    }
+    return v;
+  });
 }
 
 async function removeData(key) {
@@ -61,14 +73,12 @@ async function main() {
   console.log('🔗 SabiWork WhatsApp Pairing Tool\n');
   await ensureTable();
 
-  // Only clear sessions on first run, not on QR refresh
   if (firstRun) {
     await pool.query('DELETE FROM whatsapp_sessions');
     console.log('Cleared old sessions.\n');
     firstRun = false;
   }
 
-  // Load existing creds (may have partial state from scan attempt)
   const existingCreds = await readData('creds');
   const creds = existingCreds || initAuthCreds();
   const { version } = await fetchLatestBaileysVersion({});
@@ -82,13 +92,7 @@ async function main() {
           const result = {};
           for (const id of ids) {
             const value = await readData(`${type}-${id}`);
-            if (value) {
-              if (type === 'app-state-sync-key') {
-                result[id] = proto.Message.AppStateSyncKeyData.fromObject(value);
-              } else {
-                result[id] = value;
-              }
-            }
+            if (value) result[id] = value;
           }
           return result;
         },
@@ -104,7 +108,7 @@ async function main() {
       }
     },
     version,
-    browser: Browsers.ubuntu('Chrome'),
+    browser: ['SabiWork', 'Chrome', '4.0.0'],
     logger,
     qrTimeout: 60000,
   });
@@ -124,7 +128,7 @@ async function main() {
         const qrcode = await import('qrcode-terminal');
         (qrcode.default || qrcode).generate(qr, { small: true });
       } catch {
-        console.log('QR string (paste into any QR viewer):\n', qr);
+        console.log('QR string:', qr);
       }
       console.log('\nWaiting for scan...\n');
     }
@@ -144,7 +148,6 @@ async function main() {
         console.error('❌ Logged out. Run again.');
         process.exit(1);
       }
-      // Wait longer before regenerating — give user time to scan
       console.log('\nQR expired. New one in 5 seconds...\n');
       setTimeout(() => main(), 5000);
     }
