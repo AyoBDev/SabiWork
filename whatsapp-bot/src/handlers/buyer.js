@@ -54,6 +54,7 @@ function getDemoWorkers(trade) {
 
 export async function handleBuyer(phone, text, state, conversations) {
   const upperText = text.toUpperCase().trim();
+  console.log(`[Buyer] phone=${phone} text="${text}" trade=${detectTrade(text)}`);
 
   // Handle BOOK command
   if (upperText.startsWith('BOOK') || upperText === 'NEXT') {
@@ -113,7 +114,7 @@ export async function handleBuyer(phone, text, state, conversations) {
     return formatWorkerMatch(workers[0], 1, workers.length);
   }
 
-  // No trade detected — send to AI chat endpoint
+  // No trade detected locally — send to AI chat endpoint
   backendAPI.notifyEvent('message_parsed', {
     actor: phone,
     description: `WhatsApp: "${text}"`,
@@ -138,6 +139,13 @@ export async function handleBuyer(phone, text, state, conversations) {
     }
 
     if (response.message) {
+      // If response says "no worker available" but we can detect a trade, show demo workers
+      const tradeFallback = detectTrade(text);
+      if (tradeFallback && /no\s+\w+\s+available|not\s+found|couldn't find/i.test(response.message)) {
+        const workers = getDemoWorkers(tradeFallback);
+        conversations.set(phone, { ...state, buyerContext: { workers, currentIdx: 0 } });
+        return formatWorkerMatch(workers[0], 1, workers.length);
+      }
       return response.message;
     }
 
